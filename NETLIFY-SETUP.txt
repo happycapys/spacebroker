@@ -1,0 +1,13 @@
+SPACE BROKERS — NETLIFY SETUP
+
+1. Upload the contents of this folder to the root of your GitHub repository.
+2. In Netlify, import that GitHub repository.
+3. Use these settings:
+   Branch to deploy: main
+   Base directory: leave blank
+   Build command: npm run build
+   Publish directory: .next
+   Functions directory: leave unchanged
+
+The included netlify.toml also supplies the build command, publish directory,
+and Node.js version automatically.
