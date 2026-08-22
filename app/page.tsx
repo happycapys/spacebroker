@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const WL_FORM_URL = process.env.NEXT_PUBLIC_WL_FORM_URL || "";
 const socialLinks = {
   x: "https://x.com/spacebrokers_",
   discord: "https://discord.gg/2696H6XJH",
@@ -135,8 +134,9 @@ function WhitelistChecker() {
     setState("checking");
     try {
       const response = await fetch("/wl-wallets.json", { cache: "no-store" });
+      if (!response.ok) throw new Error("Clearance database unavailable");
       const wallets: string[] = await response.json();
-      if (!wallets.length) { setState("offline"); return; }
+      if (!Array.isArray(wallets)) throw new Error("Invalid clearance database");
       setState(wallets.map((item) => item.toLowerCase()).includes(normalized) ? "approved" : "not-found");
     } catch { setState("offline"); }
   };
@@ -153,6 +153,53 @@ function WhitelistChecker() {
     <div className="checker-input"><input id="wallet-check" value={wallet} onChange={(event) => { setWallet(event.target.value); setState("idle"); }} placeholder="0x…" autoComplete="off" spellCheck={false} /><button type="submit">RUN CHECK</button></div>
     <output aria-live="polite">{result}</output>
   </form>;
+}
+
+type ApplicationState = "idle" | "sending" | "success" | "invalid" | "unconfirmed" | "error";
+
+function WhitelistApplication({ onClose }: { onClose: () => void }) {
+  const [wallet, setWallet] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [state, setState] = useState<ApplicationState>("idle");
+
+  const submitApplication = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const normalized = wallet.trim().toLowerCase();
+    if (!/^0x[a-f0-9]{40}$/.test(normalized)) { setState("invalid"); return; }
+    if (!confirmed) { setState("unconfirmed"); return; }
+    setState("sending");
+    try {
+      const body = new URLSearchParams({ "form-name": "space-brokers-wl", wallet: normalized, follow_confirmed: "yes" });
+      const response = await fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString() });
+      if (!response.ok) throw new Error("Submission failed");
+      setState("success");
+    } catch { setState("error"); }
+  };
+
+  const message = {
+    idle: "ONE WALLET PER AGENT. CLEARANCE IS REVIEWED BEFORE APPROVAL.",
+    sending: "TRANSMITTING WALLET TO MISSION CONTROL…",
+    success: "TRANSMISSION RECEIVED // RETURN LATER TO CHECK CLEARANCE.",
+    invalid: "INVALID WALLET // ENTER A COMPLETE 0x ADDRESS.",
+    unconfirmed: "CONFIRM THE X MISSION BEFORE TRANSMITTING.",
+    error: "TRANSMISSION FAILED // PLEASE TRY AGAIN.",
+  }[state];
+
+  return <div className="wl-form-backdrop" role="dialog" aria-modal="true" aria-label="Whitelist application">
+    <section className="wl-form-modal">
+      <header><div><small>SECURE INTAKE // NETLIFY FORMS</small><strong>REQUEST WL CLEARANCE</strong></div><button type="button" onClick={onClose} aria-label="Close whitelist form">×</button></header>
+      {state === "success" ? <div className="wl-success"><span>✓</span><h3>APPLICATION RECEIVED</h3><p>{message}</p><button type="button" onClick={onClose}>RETURN TO MOTHERSHIP</button></div> : <form name="space-brokers-wl" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" onSubmit={submitApplication}>
+        <input type="hidden" name="form-name" value="space-brokers-wl" />
+        <p className="honeypot"><label>Do not fill this out: <input name="bot-field" /></label></p>
+        <div className="mission-step"><span>01</span><div><small>REQUIRED MISSION</small><strong>FOLLOW @SPACEBROKERS_ ON X</strong></div><a href={socialLinks.x} target="_blank" rel="noreferrer">OPEN X ↗</a></div>
+        <label htmlFor="wallet-application">02 // EVM WALLET ADDRESS</label>
+        <input id="wallet-application" name="wallet" value={wallet} onChange={(event) => { setWallet(event.target.value); setState("idle"); }} placeholder="0x…" autoComplete="off" spellCheck={false} required />
+        <label className="follow-confirm"><input type="checkbox" name="follow_confirmed" value="yes" checked={confirmed} onChange={(event) => { setConfirmed(event.target.checked); setState("idle"); }} /><span>I CONFIRM I FOLLOW @SPACEBROKERS_ ON X</span></label>
+        <button className="submit-clearance" type="submit" disabled={state === "sending"}>{state === "sending" ? "TRANSMITTING…" : "SUBMIT FOR CLEARANCE →"}</button>
+        <output className={state} aria-live="polite">{message}</output>
+      </form>}
+    </section>
+  </div>;
 }
 
 function PreMintSite() {
@@ -172,13 +219,12 @@ function PreMintSite() {
         <h1>2,048 AGENTS.<br /><em>ONE MOTHERSHIP.</em></h1>
         <p className="lead">Something is moving beyond the market. Secure clearance before the files are opened.</p>
         <div className="hero-actions">
-          {WL_FORM_URL ? <button className="primary" type="button" onClick={() => setFormOpen(true)}>REQUEST WL CLEARANCE ↗</button> : <span className="primary disabled">WL FORM LINK PENDING</span>}
+          <button className="primary" type="button" onClick={() => setFormOpen(true)}>REQUEST WL CLEARANCE ↗</button>
           <a className="secondary" href="#wl-check">CHECK WL STATUS ↓</a>
         </div>
         <div className="hero-stats"><div><strong>2,048</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
       </div>
       <div className="premint-agent hero-art">
-        <div className="classified-stamp">IDENTITY CLASSIFIED</div>
         <img className="broker-base" src="/space-broker-base.png" alt="Classified pixel alien Space Broker" />
         <img className="broker-reveal" src="/space-broker-reveal.png" alt="" aria-hidden="true" />
         <div className="scan-line" aria-hidden="true" />
@@ -200,13 +246,7 @@ function PreMintSite() {
 
     <footer className="premint-footer"><a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a><p>Follow the space economy. The truth is in the files.</p><div><a href={socialLinks.x} target="_blank" rel="noreferrer">X ↗</a><a href={socialLinks.discord} target="_blank" rel="noreferrer">DISCORD ↗</a><a href={socialLinks.opensea} target="_blank" rel="noreferrer">OPENSEA ↗</a></div></footer>
     <AudioToggle />
-    {formOpen && <div className="wl-form-backdrop" role="dialog" aria-modal="true" aria-label="Whitelist application">
-      <section className="wl-form-modal">
-        <header><div><small>SECURE INTAKE // EXTERNAL FORM</small><strong>REQUEST WL CLEARANCE</strong></div><button type="button" onClick={() => setFormOpen(false)} aria-label="Close whitelist form">×</button></header>
-        <iframe src={WL_FORM_URL} title="Space Brokers whitelist application" loading="lazy" />
-        <footer><span>FORM NOT LOADING?</span><a href={WL_FORM_URL} target="_blank" rel="noreferrer">OPEN IN NEW TAB ↗</a></footer>
-      </section>
-    </div>}
+    {formOpen && <WhitelistApplication onClose={() => setFormOpen(false)} />}
   </main>;
 }
 

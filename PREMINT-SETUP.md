@@ -2,11 +2,11 @@
 
 The pre-mint classified landing page is now the default. The complete original site is still in the project and has not been deleted.
 
-## Add the whitelist form
+## Whitelist submissions
 
-In Netlify, add the environment variable `NEXT_PUBLIC_WL_FORM_URL` with the public Google Form URL, then redeploy. Use the Google Forms embed URL where possible (`viewform?embedded=true`). The form opens inside the Space Brokers site and also offers an external-tab fallback.
+The whitelist application is a native Netlify Form named `space-brokers-wl`. It collects one EVM wallet address and a confirmation that the applicant followed the Space Brokers X account. No external form URL or environment variable is required.
 
-Recommended form fields: X username, Discord username, EVM wallet address, and an agreement checkbox confirming the required follow/like/repost mission. Do not make the response spreadsheet public.
+After deployment, open the site in Netlify and select **Forms** to view or export submissions. The follow confirmation is self-reported; collecting only a wallet address cannot independently verify an X account.
 
 ## Publish whitelist results
 
