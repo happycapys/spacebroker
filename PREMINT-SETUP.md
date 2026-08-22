@@ -4,9 +4,11 @@ The pre-mint classified landing page is now the default. The complete original s
 
 ## Whitelist submissions
 
-The whitelist application is a native Netlify Form named `space-brokers-wl`. It collects one EVM wallet address and a confirmation that the applicant followed the Space Brokers X account. No external form URL or environment variable is required.
+The whitelist application is a native Netlify Form named `space-brokers-wl`. It collects the applicant's X handle, one EVM wallet address, and confirmation that they followed the Space Brokers X account. No external form URL or environment variable is required.
 
-After deployment, open the site in Netlify and select **Forms** to view or export submissions. The follow confirmation is self-reported; collecting only a wallet address cannot independently verify an X account.
+After deployment, open the site in Netlify and select **Forms** to view or export submissions. Check each submitted X account follows `@spacebrokers_` before copying its associated wallet into the approved checker list.
+
+Before testing, confirm form detection is enabled in Netlify and redeploy the site after enabling it. The application submits by AJAX to the dedicated static `/netlify-forms.html` blueprint required for Next.js sites. If a test does not appear under verified submissions, also check the form's spam submissions.
 
 ## Publish whitelist results
 

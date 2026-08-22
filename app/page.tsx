@@ -155,22 +155,25 @@ function WhitelistChecker() {
   </form>;
 }
 
-type ApplicationState = "idle" | "sending" | "success" | "invalid" | "unconfirmed" | "error";
+type ApplicationState = "idle" | "sending" | "success" | "invalid-wallet" | "invalid-handle" | "unconfirmed" | "error";
 
 function WhitelistApplication({ onClose }: { onClose: () => void }) {
   const [wallet, setWallet] = useState("");
+  const [xHandle, setXHandle] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [state, setState] = useState<ApplicationState>("idle");
 
   const submitApplication = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = wallet.trim().toLowerCase();
-    if (!/^0x[a-f0-9]{40}$/.test(normalized)) { setState("invalid"); return; }
+    const normalizedHandle = xHandle.trim().replace(/^https?:\/\/(?:www\.)?(?:x|twitter)\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0];
+    if (!/^[a-z0-9_]{1,15}$/i.test(normalizedHandle)) { setState("invalid-handle"); return; }
+    if (!/^0x[a-f0-9]{40}$/.test(normalized)) { setState("invalid-wallet"); return; }
     if (!confirmed) { setState("unconfirmed"); return; }
     setState("sending");
     try {
-      const body = new URLSearchParams({ "form-name": "space-brokers-wl", wallet: normalized, follow_confirmed: "yes" });
-      const response = await fetch("/", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString() });
+      const body = new URLSearchParams({ "form-name": "space-brokers-wl", x_handle: `@${normalizedHandle}`, wallet: normalized, follow_confirmed: "yes" });
+      const response = await fetch("/netlify-forms.html", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString() });
       if (!response.ok) throw new Error("Submission failed");
       setState("success");
     } catch { setState("error"); }
@@ -180,7 +183,8 @@ function WhitelistApplication({ onClose }: { onClose: () => void }) {
     idle: "ONE WALLET PER AGENT. CLEARANCE IS REVIEWED BEFORE APPROVAL.",
     sending: "TRANSMITTING WALLET TO MISSION CONTROL…",
     success: "TRANSMISSION RECEIVED // RETURN LATER TO CHECK CLEARANCE.",
-    invalid: "INVALID WALLET // ENTER A COMPLETE 0x ADDRESS.",
+    "invalid-wallet": "INVALID WALLET // ENTER A COMPLETE 0x ADDRESS.",
+    "invalid-handle": "INVALID X ACCOUNT // ENTER YOUR HANDLE, SUCH AS @AGENT51.",
     unconfirmed: "CONFIRM THE X MISSION BEFORE TRANSMITTING.",
     error: "TRANSMISSION FAILED // PLEASE TRY AGAIN.",
   }[state];
@@ -192,7 +196,9 @@ function WhitelistApplication({ onClose }: { onClose: () => void }) {
         <input type="hidden" name="form-name" value="space-brokers-wl" />
         <p className="honeypot"><label>Do not fill this out: <input name="bot-field" /></label></p>
         <div className="mission-step"><span>01</span><div><small>REQUIRED MISSION</small><strong>FOLLOW @SPACEBROKERS_ ON X</strong></div><a href={socialLinks.x} target="_blank" rel="noreferrer">OPEN X ↗</a></div>
-        <label htmlFor="wallet-application">02 // EVM WALLET ADDRESS</label>
+        <label htmlFor="x-application">02 // YOUR X ACCOUNT</label>
+        <input id="x-application" name="x_handle" value={xHandle} onChange={(event) => { setXHandle(event.target.value); setState("idle"); }} placeholder="@YOURHANDLE" autoComplete="off" spellCheck={false} required />
+        <label htmlFor="wallet-application">03 // EVM WALLET ADDRESS</label>
         <input id="wallet-application" name="wallet" value={wallet} onChange={(event) => { setWallet(event.target.value); setState("idle"); }} placeholder="0x…" autoComplete="off" spellCheck={false} required />
         <label className="follow-confirm"><input type="checkbox" name="follow_confirmed" value="yes" checked={confirmed} onChange={(event) => { setConfirmed(event.target.checked); setState("idle"); }} /><span>I CONFIRM I FOLLOW @SPACEBROKERS_ ON X</span></label>
         <button className="submit-clearance" type="submit" disabled={state === "sending"}>{state === "sending" ? "TRANSMITTING…" : "SUBMIT FOR CLEARANCE →"}</button>
