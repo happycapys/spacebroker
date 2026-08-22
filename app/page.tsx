@@ -44,7 +44,7 @@ function ArticleModal({ article, onClose }: { article: Article; onClose: () => v
 
 function TransmissionTicker() {
   const messages = [
-    "CLASSIFIED TRANSMISSION // 2,048 AGENTS IDENTIFIED",
+    "CLASSIFIED TRANSMISSION // 2,222 AGENTS IDENTIFIED",
     "MINT PROTOCOL // $2 PER AGENT // MAX 3 PER WALLET",
     "MISSION CONTROL // FOLLOW THE SPACE ECONOMY",
     "BLACK SIGNAL // ARCHIVE FREQUENCY ACQUIRED",
@@ -222,13 +222,13 @@ function PreMintSite() {
       <div className="classified-grid" aria-hidden="true" />
       <div className="premint-copy">
         <p className="eyebrow"><span /> CLASSIFIED SIGNAL // ROBINHOOD CHAIN</p>
-        <h1>2,048 AGENTS.<br /><em>ONE MOTHERSHIP.</em></h1>
+        <h1>2,222 AGENTS.<br /><em>ONE MOTHERSHIP.</em></h1>
         <p className="lead">Something is moving beyond the market. Secure clearance before the files are opened.</p>
         <div className="hero-actions">
           <button className="primary" type="button" onClick={() => setFormOpen(true)}>REQUEST WL CLEARANCE ↗</button>
           <a className="secondary" href="#wl-check">CHECK WL STATUS ↓</a>
         </div>
-        <div className="hero-stats"><div><strong>2,048</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
+        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
       </div>
       <div className="premint-agent hero-art">
         <img className="broker-base" src="/space-broker-base.png" alt="Classified pixel alien Space Broker" />
@@ -462,7 +462,7 @@ function PostMintSite() {
         <h1>THE MARKET IS<br /><em>BIGGER THAN EARTH.</em></h1>
         <p className="lead">Classified alien agents gaining exposure to the companies, commodities and technologies shaping humanity&apos;s future in space.</p>
         <div className="hero-actions"><a className="primary" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a><a className="secondary" href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">JOIN DISCORD ↗</a></div>
-        <div className="hero-stats"><div><strong>2,048</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
+        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
       </div>
       <div className="hero-art">
         <img className="broker-base" src="/space-broker-base.png" alt="Pixel alien Space Broker" />
