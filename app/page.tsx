@@ -2,6 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const WL_FORM_URL = process.env.NEXT_PUBLIC_WL_FORM_URL || "";
+const socialLinks = {
+  x: "https://x.com/spacebrokers_",
+  discord: "https://discord.gg/2696H6XJH",
+  opensea: "https://opensea.io/collection/spacebrokers",
+};
+
 const assets = [
   { ticker: "RKLB", name: "Rocket Lab USA", type: "PUBLIC STOCK · NASDAQ", division: "Launch Systems", allocation: 24, price: "$75.84", change: "−4.19%", direction: "down", description: "Launches small satellites and builds spacecraft, components and mission systems.", tone: "cyan", color: "#22dff3" },
   { ticker: "ASTS", name: "AST SpaceMobile", type: "PUBLIC STOCK · NASDAQ", division: "Orbital Network", allocation: 21, price: "$66.43", change: "−0.97%", direction: "down", description: "Building a satellite network designed to connect ordinary mobile phones from space.", tone: "green", color: "#68ff14" },
@@ -95,6 +102,112 @@ function AudioToggle() {
       <span><small>BLACK SIGNAL ARCHIVE</small><b>AUDIO {playing ? "ON" : "OFF"}</b></span>
     </button>
   </div>;
+}
+
+function SocialIcon({ type }: { type: "x" | "discord" | "opensea" }) {
+  if (type === "x") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 16M19 4L5 20" /></svg>;
+  if (type === "discord") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7c3-2 7-2 10 0 2 3 3 6 3 10-2 2-3 2-5 3l-1-2c-1 .2-3 .2-4 0l-1 2c-2-1-3-1-5-3 0-4 1-7 3-10Z" /><circle cx="9" cy="13" r="1" /><circle cx="15" cy="13" r="1" /></svg>;
+  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 5v10M12 6l4 8H8l4-8ZM7 17h10" /></svg>;
+}
+
+function SocialOrbit() {
+  return <section className="social-orbit" aria-label="Official Space Brokers links">
+    <div className="orbit-stars" aria-hidden="true" />
+    <div className="social-ring ring-a" aria-hidden="true" /><div className="social-ring ring-b" aria-hidden="true" />
+    <div className="mothership-core"><span>SB</span><small>MOTHERSHIP</small><i>TRANSMISSION HUB</i></div>
+    <a className="social-planet social-x" href={socialLinks.x} target="_blank" rel="noreferrer" aria-label="Follow Space Brokers on X"><SocialIcon type="x" /><span>X</span><b>FOLLOW</b></a>
+    <a className="social-planet social-discord" href={socialLinks.discord} target="_blank" rel="noreferrer" aria-label="Join the Space Brokers Discord"><SocialIcon type="discord" /><span>DISCORD</span><b>BOARD</b></a>
+    <a className="social-planet social-opensea" href={socialLinks.opensea} target="_blank" rel="noreferrer" aria-label="View Space Brokers on OpenSea"><SocialIcon type="opensea" /><span>OPENSEA</span><b>COLLECTION</b></a>
+    <p>SELECT A PLANET TO OPEN AN OFFICIAL CHANNEL</p>
+  </section>;
+}
+
+type CheckerState = "idle" | "checking" | "approved" | "not-found" | "invalid" | "offline";
+
+function WhitelistChecker() {
+  const [wallet, setWallet] = useState("");
+  const [state, setState] = useState<CheckerState>("idle");
+
+  const checkWallet = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const normalized = wallet.trim().toLowerCase();
+    if (!/^0x[a-f0-9]{40}$/.test(normalized)) { setState("invalid"); return; }
+    setState("checking");
+    try {
+      const response = await fetch("/wl-wallets.json", { cache: "no-store" });
+      const wallets: string[] = await response.json();
+      if (!wallets.length) { setState("offline"); return; }
+      setState(wallets.map((item) => item.toLowerCase()).includes(normalized) ? "approved" : "not-found");
+    } catch { setState("offline"); }
+  };
+
+  const result = {
+    idle: "ENTER THE WALLET USED FOR REGISTRATION.", checking: "SCANNING CLEARANCE DATABASE…",
+    approved: "CLEARANCE CONFIRMED // WALLET APPROVED", "not-found": "NO CLEARANCE FOUND // CHECK THE WALLET OR AWAIT THE NEXT UPDATE",
+    invalid: "INVALID WALLET // ENTER A COMPLETE 0x ADDRESS", offline: "WL DATABASE NOT YET LOADED // CHECK BACK AFTER REGISTRATION CLOSES",
+  }[state];
+
+  return <form className={`wl-checker ${state}`} onSubmit={checkWallet}>
+    <div className="checker-heading"><span>WL CHECKER</span><b>{state === "offline" ? "OFFLINE" : "STANDBY"}</b></div>
+    <label htmlFor="wallet-check">WALLET ADDRESS</label>
+    <div className="checker-input"><input id="wallet-check" value={wallet} onChange={(event) => { setWallet(event.target.value); setState("idle"); }} placeholder="0x…" autoComplete="off" spellCheck={false} /><button type="submit">RUN CHECK</button></div>
+    <output aria-live="polite">{result}</output>
+  </form>;
+}
+
+function PreMintSite() {
+  const [formOpen, setFormOpen] = useState(false);
+
+  return <main className="premint-site">
+    <header className="premint-header">
+      <a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a>
+      <div><span className="signal-dot" /> PRE-MINT TRANSMISSION</div>
+      <a href={socialLinks.x} target="_blank" rel="noreferrer">FOLLOW ON X ↗</a>
+    </header>
+
+    <section className="premint-hero" id="top">
+      <div className="classified-grid" aria-hidden="true" />
+      <div className="premint-copy">
+        <p className="eyebrow"><span /> CLASSIFIED SIGNAL // ROBINHOOD CHAIN</p>
+        <h1>2,048 AGENTS.<br /><em>ONE MOTHERSHIP.</em></h1>
+        <p className="lead">Something is moving beyond the market. Secure clearance before the files are opened.</p>
+        <div className="hero-actions">
+          {WL_FORM_URL ? <button className="primary" type="button" onClick={() => setFormOpen(true)}>REQUEST WL CLEARANCE ↗</button> : <span className="primary disabled">WL FORM LINK PENDING</span>}
+          <a className="secondary" href="#wl-check">CHECK WL STATUS ↓</a>
+        </div>
+        <div className="hero-stats"><div><strong>2,048</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
+      </div>
+      <div className="premint-agent hero-art">
+        <div className="classified-stamp">IDENTITY CLASSIFIED</div>
+        <img className="broker-base" src="/space-broker-base.png" alt="Classified pixel alien Space Broker" />
+        <img className="broker-reveal" src="/space-broker-reveal.png" alt="" aria-hidden="true" />
+        <div className="scan-line" aria-hidden="true" />
+        <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+        <div className="agent-tag">AGENT SCAN // ACTIVE<br /><b>TRAITS: ENCRYPTED</b></div>
+      </div>
+    </section>
+
+    <TransmissionTicker />
+
+    <section className="premint-access" id="wl-check">
+      <div className="access-copy"><p>ACCESS PROTOCOL // 001</p><h2>REQUEST CLEARANCE.<br /><span>AWAIT THE SIGNAL.</span></h2><small>Complete the X mission, register one EVM wallet, then return here when the clearance database goes live.</small></div>
+      <div className="access-grid"><WhitelistChecker /><SocialOrbit /></div>
+    </section>
+
+    <section className="locked-files" aria-label="Locked post-mint systems">
+      {["PORTFOLIO UNIVERSE", "FILE 51", "MOTHERSHIP SIGNAL"].map((title, index) => <article key={title}><span>0{index + 1}</span><div><small>ACCESS DENIED</small><h3>{title}</h3></div><b>LOCKED</b></article>)}
+    </section>
+
+    <footer className="premint-footer"><a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a><p>Follow the space economy. The truth is in the files.</p><div><a href={socialLinks.x} target="_blank" rel="noreferrer">X ↗</a><a href={socialLinks.discord} target="_blank" rel="noreferrer">DISCORD ↗</a><a href={socialLinks.opensea} target="_blank" rel="noreferrer">OPENSEA ↗</a></div></footer>
+    <AudioToggle />
+    {formOpen && <div className="wl-form-backdrop" role="dialog" aria-modal="true" aria-label="Whitelist application">
+      <section className="wl-form-modal">
+        <header><div><small>SECURE INTAKE // EXTERNAL FORM</small><strong>REQUEST WL CLEARANCE</strong></div><button type="button" onClick={() => setFormOpen(false)} aria-label="Close whitelist form">×</button></header>
+        <iframe src={WL_FORM_URL} title="Space Brokers whitelist application" loading="lazy" />
+        <footer><span>FORM NOT LOADING?</span><a href={WL_FORM_URL} target="_blank" rel="noreferrer">OPEN IN NEW TAB ↗</a></footer>
+      </section>
+    </div>}
+  </main>;
 }
 
 function PortfolioUniverse() {
@@ -276,7 +389,7 @@ function AbductionGame() {
   </div>;
 }
 
-export default function Home() {
+function PostMintSite() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   return <main>
@@ -337,4 +450,8 @@ export default function Home() {
     <AudioToggle />
     {activeArticle && <ArticleModal article={activeArticle} onClose={() => setActiveArticle(null)} />}
   </main>;
+}
+
+export default function Home() {
+  return process.env.NEXT_PUBLIC_SITE_PHASE === "postmint" ? <PostMintSite /> : <PreMintSite />;
 }
