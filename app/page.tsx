@@ -67,15 +67,34 @@ function TransmissionTicker() {
   }, [messageIndex, typed]);
 
   return <section className="transmission-ticker" aria-label="Live Space Brokers transmission">
-    <div className="ticker-code"><span /> SB-2048</div>
+    <div className="ticker-code"><span /> SB-2222</div>
     <div className="ticker-terminal"><i>›</i><strong>{typed}</strong><b aria-hidden="true" /></div>
     <div className="ticker-signal"><span>LIVE</span><i /><i /><i /><i /></div>
   </section>;
 }
 
-function AudioToggle() {
+function AudioToggle({ entrance = false }: { entrance?: boolean }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [entered, setEntered] = useState(!entrance);
+  const [opening, setOpening] = useState(false);
+
+  useEffect(() => {
+    if (!entrance || entered) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [entrance, entered]);
+
+  const enterMothership = async () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = 0.32;
+      try { await audio.play(); setPlaying(true); } catch { setPlaying(false); }
+    }
+    setOpening(true);
+    window.setTimeout(() => setEntered(true), 1450);
+  };
 
   const toggleAudio = async () => {
     const audio = audioRef.current;
@@ -94,13 +113,25 @@ function AudioToggle() {
     }
   };
 
-  return <div className={`audio-control ${playing ? "playing" : ""}`}>
-    <audio ref={audioRef} src="/black-signal-archive.mp3" loop preload="none" />
-    <button onClick={toggleAudio} aria-pressed={playing} aria-label={`${playing ? "Turn off" : "Turn on"} background music`}>
-      <span className="audio-bars" aria-hidden="true"><i /><i /><i /><i /></span>
-      <span><small>BLACK SIGNAL ARCHIVE</small><b>AUDIO {playing ? "ON" : "OFF"}</b></span>
-    </button>
-  </div>;
+  return <>
+    <audio ref={audioRef} src="/black-signal-archive.mp3" loop preload="auto" />
+    {entrance && !entered && <div className={`mothership-airlock ${opening ? "opening" : ""}`}>
+      <div className="airlock-panel airlock-top"><span>SB // MOTHERSHIP</span><i /><b>AUTHORIZED AGENTS ONLY</b></div>
+      <div className="airlock-panel airlock-bottom"><span>DECK 22-22</span><i /><b>PRESSURIZED ACCESS</b></div>
+      <div className="airlock-console">
+        <small>CLASSIFIED TRANSMISSION DETECTED</small>
+        <strong>SPACE BROKERS</strong>
+        <button type="button" onClick={enterMothership} disabled={opening}>{opening ? "ACCESS GRANTED…" : "ENTER THE MOTHERSHIP"}</button>
+        <p>AUDIO WILL BEGIN ON ENTRY</p>
+      </div>
+    </div>}
+    <div className={`audio-control ${playing ? "playing" : ""}`}>
+      <button onClick={toggleAudio} aria-pressed={playing} aria-label={`${playing ? "Turn off" : "Turn on"} background music`}>
+        <span className="audio-bars" aria-hidden="true"><i /><i /><i /><i /></span>
+        <span><small>BLACK SIGNAL ARCHIVE</small><b>AUDIO {playing ? "ON" : "OFF"}</b></span>
+      </button>
+    </div>
+  </>;
 }
 
 function SocialIcon({ type }: { type: "x" | "discord" | "opensea" }) {
@@ -251,7 +282,7 @@ function PreMintSite() {
     </section>
 
     <footer className="premint-footer"><a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a><p>Follow the space economy. The truth is in the files.</p><div><a href={socialLinks.x} target="_blank" rel="noreferrer">X ↗</a><a href={socialLinks.discord} target="_blank" rel="noreferrer">DISCORD ↗</a><a href={socialLinks.opensea} target="_blank" rel="noreferrer">OPENSEA ↗</a></div></footer>
-    <AudioToggle />
+    <AudioToggle entrance />
     {formOpen && <WhitelistApplication onClose={() => setFormOpen(false)} />}
   </main>;
 }
