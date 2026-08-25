@@ -21,7 +21,7 @@ type Article = { eyebrow: string; title: string; body: string[]; sourceLabel: st
 
 const signals = [
   { tag: "ORBIT CONFIRMED", date: "AUG 16", title: "Rocket Lab-built platforms reach orbit for Globalstar", copy: "Eight spacecraft platforms are now supporting a new direct-to-device communications constellation.", body: ["Rocket Lab says eight satellite platforms it built for MDA Space successfully reached orbit on 15 August. The spacecraft are part of a Globalstar low-Earth-orbit constellation intended to support direct-to-device and IoT communications.", "The launch matters beyond rockets: it shows how spacecraft manufacturing, satellite components and orbital communications combine into one commercial infrastructure chain."], sourceLabel: "READ THE ROCKET LAB UPDATE", sourceUrl: "https://www.rocketlabusa.com/updates/rocket-lab-satellite-platforms-built-for-mda-space-successfully-reach-orbit-supporting-globalstar-direct-to-device-communications-services/" },
-  { tag: "NETWORK DEPLOYMENT", date: "AUG 05", title: "AST SpaceMobile launches BlueBird 11, 12 and 13", copy: "Three next-generation satellites have joined the push for broadband to ordinary phones from orbit.", body: ["AST SpaceMobile says BlueBird 11, 12 and 13 launched from Cape Canaveral on 5 August aboard a Falcon 9. The company is building a space-based cellular broadband network designed to connect standard mobile devices.", "The mission is an important deployment step, but the investment story still depends on successful commissioning, regulatory access, commercial partnerships and the cost of completing the constellation."], sourceLabel: "VIEW THE AST SPACEMOBILE MISSION PAGE", sourceUrl: "https://ast-science.com/next-gen-bluebird/" },
+  { tag: "NETWORK DEPLOYMENT", date: "AUG 05", title: "AST SpaceMobile launches BlueBird 11, 1 and 13", copy: "Three next-generation satellites have joined the push for broadband to ordinary phones from orbit.", body: ["AST SpaceMobile says BlueBird 11, 1 and 13 launched from Cape Canaveral on 5 August aboard a Falcon 9. The company is building a space-based cellular broadband network designed to connect standard mobile devices.", "The mission is an important deployment step, but the investment story still depends on successful commissioning, regulatory access, commercial partnerships and the cost of completing the constellation."], sourceLabel: "VIEW THE AST SPACEMOBILE MISSION PAGE", sourceUrl: "https://ast-science.com/next-gen-bluebird/" },
   { tag: "DEFENCE CONTRACT", date: "AUG 17", title: "Rocket Lab joins the Space Force NITE-STAR programme", copy: "The company can now compete for work under a test-and-training contract with a $981 million ceiling.", body: ["Rocket Lab has been onboarded to the U.S. Space Force's NITE-STAR programme, making it eligible to compete for future task orders supporting space test and training infrastructure.", "The headline ceiling is not revenue already awarded to Rocket Lab. It is the maximum potential value of the wider programme, so future task-order wins—not the ceiling alone—will determine the commercial impact."], sourceLabel: "READ THE ROCKET LAB ANNOUNCEMENT", sourceUrl: "https://www.rocketlabusa.com/updates/new-blog-posrocket-lab-onboarded-to-u-s-space-forces-981m-nite-star-program-to-advance-space-test-and-training-infrastructure-program/" },
 ];
 
@@ -45,7 +45,7 @@ function ArticleModal({ article, onClose }: { article: Article; onClose: () => v
 function TransmissionTicker() {
   const messages = [
     "CLASSIFIED TRANSMISSION // 2,222 AGENTS IDENTIFIED",
-    "MINT PROTOCOL // $2 PER AGENT // MAX 3 PER WALLET",
+    "MINT PROTOCOL // 0.0002 Eth PER AGENT // MAX 3 PER WALLET",
     "MISSION CONTROL // FOLLOW THE SPACE ECONOMY",
     "BLACK SIGNAL // ARCHIVE FREQUENCY ACQUIRED",
   ];
@@ -259,7 +259,7 @@ function PreMintSite() {
           <button className="primary" type="button" onClick={() => setFormOpen(true)}>REQUEST WL CLEARANCE ↗</button>
           <a className="secondary" href="#wl-check">CHECK WL STATUS ↓</a>
         </div>
-        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
+        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>0.0002 Eth</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
       </div>
       <div className="premint-agent hero-art">
         <img className="broker-base" src="/space-broker-base.png" alt="Classified pixel alien Space Broker" />
@@ -493,7 +493,7 @@ function PostMintSite() {
         <h1>THE MARKET IS<br /><em>BIGGER THAN EARTH.</em></h1>
         <p className="lead">Classified alien agents gaining exposure to the companies, commodities and technologies shaping humanity&apos;s future in space.</p>
         <div className="hero-actions"><a className="primary" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a><a className="secondary" href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">JOIN DISCORD ↗</a></div>
-        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>$2</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
+        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>0.0002 Eth</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
       </div>
       <div className="hero-art">
         <img className="broker-base" src="/space-broker-base.png" alt="Pixel alien Space Broker" />
