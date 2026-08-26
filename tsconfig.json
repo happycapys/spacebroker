@@ -38,6 +38,7 @@
     "examples",
     "scripts",
     "tests",
-    "worker"
+    "worker",
+    "vite.config.ts"
   ]
 }

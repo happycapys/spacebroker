@@ -2,26 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const socialLinks = {
-  x: "https://x.com/spacebrokers_",
-  discord: "https://discord.gg/2696H6XJH",
-  opensea: "https://opensea.io/collection/spacebrokers",
-};
-
 const assets = [
-  { ticker: "RKLB", name: "Rocket Lab USA", type: "PUBLIC STOCK · NASDAQ", division: "Launch Systems", allocation: 24, price: "$75.84", change: "−4.19%", direction: "down", description: "Launches small satellites and builds spacecraft, components and mission systems.", tone: "cyan", color: "#22dff3" },
-  { ticker: "ASTS", name: "AST SpaceMobile", type: "PUBLIC STOCK · NASDAQ", division: "Orbital Network", allocation: 21, price: "$66.43", change: "−0.97%", direction: "down", description: "Building a satellite network designed to connect ordinary mobile phones from space.", tone: "green", color: "#68ff14" },
-  { ticker: "LUNR", name: "Intuitive Machines", type: "PUBLIC STOCK · NASDAQ", division: "Lunar Operations", allocation: 18, price: "$18.52", change: "−4.12%", direction: "down", description: "Develops lunar landers, Moon missions and communications infrastructure.", tone: "violet", color: "#9368ff" },
-  { ticker: "RDW", name: "Redwire Corporation", type: "PUBLIC STOCK · NYSE", division: "Space Infrastructure", allocation: 15, price: "$12.40", change: "−4.33%", direction: "down", description: "Makes solar arrays, spacecraft hardware and in-space manufacturing systems.", tone: "orange", color: "#ff823e" },
-  { ticker: "PL", name: "Planet Labs PBC", type: "PUBLIC STOCK · NYSE", division: "Earth Intelligence", allocation: 12, price: "$22.62", change: "−3.13%", direction: "down", description: "Operates Earth-observation satellites and sells imagery and planetary data.", tone: "blue", color: "#4592ff" },
-  { ticker: "GLD", name: "SPDR Gold Shares", type: "GOLD-BACKED FUND · NYSE ARCA", division: "Strategic Reserve", allocation: 10, price: "$413.84", change: "+3.84%", direction: "up", description: "Tracks the price of physical gold as the mission's defensive reserve asset.", tone: "gold", color: "#ffd15a" },
+  { ticker: "SPCXx", name: "SpaceX xStock", type: "TOKENIZED EQUITY · ETHEREUM", division: "Mothership", allocation: 30, description: "Tokenized exposure linked to SpaceX, the launch and satellite company behind Starship and Starlink.", tone: "green", color: "#68ff14" },
+  { ticker: "RKLBx", name: "Rocket Lab USA xStock", type: "TOKENIZED EQUITY · ETHEREUM", division: "Launch Systems", allocation: 20, description: "Tokenized exposure to Rocket Lab's launch vehicles, spacecraft and mission systems.", tone: "cyan", color: "#22dff3" },
+  { ticker: "ASTSx", name: "AST SpaceMobile xStock", type: "TOKENIZED EQUITY · ETHEREUM", division: "Orbital Network", allocation: 16, description: "Tokenized exposure to a satellite network designed to connect ordinary mobile phones from orbit.", tone: "violet", color: "#9368ff" },
+  { ticker: "LUNRx", name: "Intuitive Machines xStock", type: "TOKENIZED EQUITY · ETHEREUM", division: "Lunar Operations", allocation: 14, description: "Tokenized exposure to lunar landers, Moon missions and communications infrastructure.", tone: "orange", color: "#ff823e" },
+  { ticker: "RDWx", name: "Redwire Corporation xStock", type: "TOKENIZED EQUITY · ETHEREUM", division: "Space Infrastructure", allocation: 10, description: "Tokenized exposure to spacecraft hardware, solar arrays and in-space manufacturing systems.", tone: "blue", color: "#4592ff" },
+  { ticker: "PLx", name: "Planet Labs PBC xStock", type: "TOKENIZED EQUITY · ETHEREUM", division: "Earth Intelligence", allocation: 10, description: "Tokenized exposure to Earth-observation satellites, imagery and planetary data.", tone: "gold", color: "#ffd15a" },
 ];
 
 type Article = { eyebrow: string; title: string; body: string[]; sourceLabel: string; sourceUrl: string };
 
 const signals = [
   { tag: "ORBIT CONFIRMED", date: "AUG 16", title: "Rocket Lab-built platforms reach orbit for Globalstar", copy: "Eight spacecraft platforms are now supporting a new direct-to-device communications constellation.", body: ["Rocket Lab says eight satellite platforms it built for MDA Space successfully reached orbit on 15 August. The spacecraft are part of a Globalstar low-Earth-orbit constellation intended to support direct-to-device and IoT communications.", "The launch matters beyond rockets: it shows how spacecraft manufacturing, satellite components and orbital communications combine into one commercial infrastructure chain."], sourceLabel: "READ THE ROCKET LAB UPDATE", sourceUrl: "https://www.rocketlabusa.com/updates/rocket-lab-satellite-platforms-built-for-mda-space-successfully-reach-orbit-supporting-globalstar-direct-to-device-communications-services/" },
-  { tag: "NETWORK DEPLOYMENT", date: "AUG 05", title: "AST SpaceMobile launches BlueBird 11, 1 and 13", copy: "Three next-generation satellites have joined the push for broadband to ordinary phones from orbit.", body: ["AST SpaceMobile says BlueBird 11, 1 and 13 launched from Cape Canaveral on 5 August aboard a Falcon 9. The company is building a space-based cellular broadband network designed to connect standard mobile devices.", "The mission is an important deployment step, but the investment story still depends on successful commissioning, regulatory access, commercial partnerships and the cost of completing the constellation."], sourceLabel: "VIEW THE AST SPACEMOBILE MISSION PAGE", sourceUrl: "https://ast-science.com/next-gen-bluebird/" },
+  { tag: "NETWORK DEPLOYMENT", date: "AUG 05", title: "AST SpaceMobile launches BlueBird 11, 12 and 13", copy: "Three next-generation satellites have joined the push for broadband to ordinary phones from orbit.", body: ["AST SpaceMobile says BlueBird 11, 12 and 13 launched from Cape Canaveral on 5 August aboard a Falcon 9. The company is building a space-based cellular broadband network designed to connect standard mobile devices.", "The mission is an important deployment step, but the investment story still depends on successful commissioning, regulatory access, commercial partnerships and the cost of completing the constellation."], sourceLabel: "VIEW THE AST SPACEMOBILE MISSION PAGE", sourceUrl: "https://ast-science.com/next-gen-bluebird/" },
   { tag: "DEFENCE CONTRACT", date: "AUG 17", title: "Rocket Lab joins the Space Force NITE-STAR programme", copy: "The company can now compete for work under a test-and-training contract with a $981 million ceiling.", body: ["Rocket Lab has been onboarded to the U.S. Space Force's NITE-STAR programme, making it eligible to compete for future task orders supporting space test and training infrastructure.", "The headline ceiling is not revenue already awarded to Rocket Lab. It is the maximum potential value of the wider programme, so future task-order wins—not the ceiling alone—will determine the commercial impact."], sourceLabel: "READ THE ROCKET LAB ANNOUNCEMENT", sourceUrl: "https://www.rocketlabusa.com/updates/new-blog-posrocket-lab-onboarded-to-u-s-space-forces-981m-nite-star-program-to-advance-space-test-and-training-infrastructure-program/" },
 ];
 
@@ -44,8 +38,8 @@ function ArticleModal({ article, onClose }: { article: Article; onClose: () => v
 
 function TransmissionTicker() {
   const messages = [
-    "CLASSIFIED TRANSMISSION // 2,222 AGENTS IDENTIFIED",
-    "MINT PROTOCOL // 0.0002 Eth PER AGENT // MAX 3 PER WALLET",
+    "PUBLIC TRANSMISSION // WHITELIST PHASE COMPLETE",
+    "COLLECTION ACCESS // OPEN TO ALL EARTHLINGS",
     "MISSION CONTROL // FOLLOW THE SPACE ECONOMY",
     "BLACK SIGNAL // ARCHIVE FREQUENCY ACQUIRED",
   ];
@@ -67,34 +61,15 @@ function TransmissionTicker() {
   }, [messageIndex, typed]);
 
   return <section className="transmission-ticker" aria-label="Live Space Brokers transmission">
-    <div className="ticker-code"><span /> SB-2222</div>
+    <div className="ticker-code"><span /> SB-OPEN</div>
     <div className="ticker-terminal"><i>›</i><strong>{typed}</strong><b aria-hidden="true" /></div>
     <div className="ticker-signal"><span>LIVE</span><i /><i /><i /><i /></div>
   </section>;
 }
 
-function AudioToggle({ entrance = false }: { entrance?: boolean }) {
+function AudioToggle() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
-  const [entered, setEntered] = useState(!entrance);
-  const [opening, setOpening] = useState(false);
-
-  useEffect(() => {
-    if (!entrance || entered) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = previous; };
-  }, [entrance, entered]);
-
-  const enterMothership = async () => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.volume = 0.32;
-      try { await audio.play(); setPlaying(true); } catch { setPlaying(false); }
-    }
-    setOpening(true);
-    window.setTimeout(() => setEntered(true), 1450);
-  };
 
   const toggleAudio = async () => {
     const audio = audioRef.current;
@@ -113,178 +88,13 @@ function AudioToggle({ entrance = false }: { entrance?: boolean }) {
     }
   };
 
-  return <>
-    <audio ref={audioRef} src="/black-signal-archive.mp3" loop preload="auto" />
-    {entrance && !entered && <div className={`mothership-airlock ${opening ? "opening" : ""}`}>
-      <div className="airlock-panel airlock-top"><span>SB // MOTHERSHIP</span><i /><b>AUTHORIZED AGENTS ONLY</b></div>
-      <div className="airlock-panel airlock-bottom"><span>DECK 22-22</span><i /><b>PRESSURIZED ACCESS</b></div>
-      <div className="airlock-console">
-        <small>CLASSIFIED TRANSMISSION DETECTED</small>
-        <strong>SPACE BROKERS</strong>
-        <button type="button" onClick={enterMothership} disabled={opening}>{opening ? "ACCESS GRANTED…" : "ENTER THE MOTHERSHIP"}</button>
-        <p>AUDIO WILL BEGIN ON ENTRY</p>
-      </div>
-    </div>}
-    <div className={`audio-control ${playing ? "playing" : ""}`}>
-      <button onClick={toggleAudio} aria-pressed={playing} aria-label={`${playing ? "Turn off" : "Turn on"} background music`}>
-        <span className="audio-bars" aria-hidden="true"><i /><i /><i /><i /></span>
-        <span><small>BLACK SIGNAL ARCHIVE</small><b>AUDIO {playing ? "ON" : "OFF"}</b></span>
-      </button>
-    </div>
-  </>;
-}
-
-function SocialIcon({ type }: { type: "x" | "discord" | "opensea" }) {
-  if (type === "x") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l14 16M19 4L5 20" /></svg>;
-  if (type === "discord") return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7c3-2 7-2 10 0 2 3 3 6 3 10-2 2-3 2-5 3l-1-2c-1 .2-3 .2-4 0l-1 2c-2-1-3-1-5-3 0-4 1-7 3-10Z" /><circle cx="9" cy="13" r="1" /><circle cx="15" cy="13" r="1" /></svg>;
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 5v10M12 6l4 8H8l4-8ZM7 17h10" /></svg>;
-}
-
-function SocialOrbit() {
-  return <section className="social-orbit" aria-label="Official Space Brokers links">
-    <div className="orbit-stars" aria-hidden="true" />
-    <div className="social-ring ring-a" aria-hidden="true" /><div className="social-ring ring-b" aria-hidden="true" />
-    <div className="mothership-core"><span>SB</span><small>MOTHERSHIP</small><i>TRANSMISSION HUB</i></div>
-    <a className="social-planet social-x" href={socialLinks.x} target="_blank" rel="noreferrer" aria-label="Follow Space Brokers on X"><SocialIcon type="x" /><span>X</span><b>FOLLOW</b></a>
-    <a className="social-planet social-discord" href={socialLinks.discord} target="_blank" rel="noreferrer" aria-label="Join the Space Brokers Discord"><SocialIcon type="discord" /><span>DISCORD</span><b>BOARD</b></a>
-    <a className="social-planet social-opensea" href={socialLinks.opensea} target="_blank" rel="noreferrer" aria-label="View Space Brokers on OpenSea"><SocialIcon type="opensea" /><span>OPENSEA</span><b>COLLECTION</b></a>
-    <p>SELECT A PLANET TO OPEN AN OFFICIAL CHANNEL</p>
-  </section>;
-}
-
-type CheckerState = "idle" | "checking" | "approved" | "not-found" | "invalid" | "offline";
-
-function WhitelistChecker() {
-  const [wallet, setWallet] = useState("");
-  const [state, setState] = useState<CheckerState>("idle");
-
-  const checkWallet = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const normalized = wallet.trim().toLowerCase();
-    if (!/^0x[a-f0-9]{40}$/.test(normalized)) { setState("invalid"); return; }
-    setState("checking");
-    try {
-      const response = await fetch("/wl-wallets.json", { cache: "no-store" });
-      if (!response.ok) throw new Error("Clearance database unavailable");
-      const wallets: string[] = await response.json();
-      if (!Array.isArray(wallets)) throw new Error("Invalid clearance database");
-      setState(wallets.map((item) => item.toLowerCase()).includes(normalized) ? "approved" : "not-found");
-    } catch { setState("offline"); }
-  };
-
-  const result = {
-    idle: "ENTER THE WALLET USED FOR REGISTRATION.", checking: "SCANNING CLEARANCE DATABASE…",
-    approved: "CLEARANCE CONFIRMED // WALLET APPROVED", "not-found": "NO CLEARANCE FOUND // CHECK THE WALLET OR AWAIT THE NEXT UPDATE",
-    invalid: "INVALID WALLET // ENTER A COMPLETE 0x ADDRESS", offline: "WL DATABASE NOT YET LOADED // CHECK BACK AFTER REGISTRATION CLOSES",
-  }[state];
-
-  return <form className={`wl-checker ${state}`} onSubmit={checkWallet}>
-    <div className="checker-heading"><span>WL CHECKER</span><b>{state === "offline" ? "OFFLINE" : "STANDBY"}</b></div>
-    <label htmlFor="wallet-check">WALLET ADDRESS</label>
-    <div className="checker-input"><input id="wallet-check" value={wallet} onChange={(event) => { setWallet(event.target.value); setState("idle"); }} placeholder="0x…" autoComplete="off" spellCheck={false} /><button type="submit">RUN CHECK</button></div>
-    <output aria-live="polite">{result}</output>
-  </form>;
-}
-
-type ApplicationState = "idle" | "sending" | "success" | "invalid-wallet" | "invalid-handle" | "unconfirmed" | "error";
-
-function WhitelistApplication({ onClose }: { onClose: () => void }) {
-  const [wallet, setWallet] = useState("");
-  const [xHandle, setXHandle] = useState("");
-  const [confirmed, setConfirmed] = useState(false);
-  const [state, setState] = useState<ApplicationState>("idle");
-
-  const submitApplication = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const normalized = wallet.trim().toLowerCase();
-    const normalizedHandle = xHandle.trim().replace(/^https?:\/\/(?:www\.)?(?:x|twitter)\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0];
-    if (!/^[a-z0-9_]{1,15}$/i.test(normalizedHandle)) { setState("invalid-handle"); return; }
-    if (!/^0x[a-f0-9]{40}$/.test(normalized)) { setState("invalid-wallet"); return; }
-    if (!confirmed) { setState("unconfirmed"); return; }
-    setState("sending");
-    try {
-      const body = new URLSearchParams({ "form-name": "space-brokers-wl", x_handle: `@${normalizedHandle}`, wallet: normalized, follow_confirmed: "yes" });
-      const response = await fetch("/netlify-forms.html", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: body.toString() });
-      if (!response.ok) throw new Error("Submission failed");
-      setState("success");
-    } catch { setState("error"); }
-  };
-
-  const message = {
-    idle: "ONE WALLET PER AGENT. CLEARANCE IS REVIEWED BEFORE APPROVAL.",
-    sending: "TRANSMITTING WALLET TO MISSION CONTROL…",
-    success: "TRANSMISSION RECEIVED // RETURN LATER TO CHECK CLEARANCE.",
-    "invalid-wallet": "INVALID WALLET // ENTER A COMPLETE 0x ADDRESS.",
-    "invalid-handle": "INVALID X ACCOUNT // ENTER YOUR HANDLE, SUCH AS @AGENT51.",
-    unconfirmed: "CONFIRM THE X MISSION BEFORE TRANSMITTING.",
-    error: "TRANSMISSION FAILED // PLEASE TRY AGAIN.",
-  }[state];
-
-  return <div className="wl-form-backdrop" role="dialog" aria-modal="true" aria-label="Whitelist application">
-    <section className="wl-form-modal">
-      <header><div><small>SECURE INTAKE // NETLIFY FORMS</small><strong>REQUEST WL CLEARANCE</strong></div><button type="button" onClick={onClose} aria-label="Close whitelist form">×</button></header>
-      {state === "success" ? <div className="wl-success"><span>✓</span><h3>APPLICATION RECEIVED</h3><p>{message}</p><button type="button" onClick={onClose}>RETURN TO MOTHERSHIP</button></div> : <form name="space-brokers-wl" method="POST" data-netlify="true" data-netlify-honeypot="bot-field" onSubmit={submitApplication}>
-        <input type="hidden" name="form-name" value="space-brokers-wl" />
-        <p className="honeypot"><label>Do not fill this out: <input name="bot-field" /></label></p>
-        <div className="mission-step"><span>01</span><div><small>REQUIRED MISSION</small><strong>FOLLOW @SPACEBROKERS_ ON X</strong></div><a href={socialLinks.x} target="_blank" rel="noreferrer">OPEN X ↗</a></div>
-        <label htmlFor="x-application">02 // YOUR X ACCOUNT</label>
-        <input id="x-application" name="x_handle" value={xHandle} onChange={(event) => { setXHandle(event.target.value); setState("idle"); }} placeholder="@YOURHANDLE" autoComplete="off" spellCheck={false} required />
-        <label htmlFor="wallet-application">03 // EVM WALLET ADDRESS</label>
-        <input id="wallet-application" name="wallet" value={wallet} onChange={(event) => { setWallet(event.target.value); setState("idle"); }} placeholder="0x…" autoComplete="off" spellCheck={false} required />
-        <label className="follow-confirm"><input type="checkbox" name="follow_confirmed" value="yes" checked={confirmed} onChange={(event) => { setConfirmed(event.target.checked); setState("idle"); }} /><span>I CONFIRM I FOLLOW @SPACEBROKERS_ ON X</span></label>
-        <button className="submit-clearance" type="submit" disabled={state === "sending"}>{state === "sending" ? "TRANSMITTING…" : "SUBMIT FOR CLEARANCE →"}</button>
-        <output className={state} aria-live="polite">{message}</output>
-      </form>}
-    </section>
+  return <div className={`audio-control ${playing ? "playing" : ""}`}>
+    <audio ref={audioRef} src="/black-signal-archive.mp3" loop preload="none" />
+    <button onClick={toggleAudio} aria-pressed={playing} aria-label={`${playing ? "Turn off" : "Turn on"} background music`}>
+      <span className="audio-bars" aria-hidden="true"><i /><i /><i /><i /></span>
+      <span><small>BLACK SIGNAL ARCHIVE</small><b>AUDIO {playing ? "ON" : "OFF"}</b></span>
+    </button>
   </div>;
-}
-
-function PreMintSite() {
-  const [formOpen, setFormOpen] = useState(false);
-
-  return <main className="premint-site">
-    <header className="premint-header">
-      <a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a>
-      <div><span className="signal-dot" /> PRE-MINT TRANSMISSION</div>
-      <a href={socialLinks.x} target="_blank" rel="noreferrer">FOLLOW ON X ↗</a>
-    </header>
-
-    <section className="premint-hero" id="top">
-      <div className="classified-grid" aria-hidden="true" />
-      <div className="premint-copy">
-        <p className="eyebrow"><span /> CLASSIFIED SIGNAL // ROBINHOOD CHAIN</p>
-        <h1>2,222 AGENTS.<br /><em>ONE MOTHERSHIP.</em></h1>
-        <p className="lead">Something is moving beyond the market. Secure clearance before the files are opened.</p>
-        <div className="hero-actions">
-          <button className="primary" type="button" onClick={() => setFormOpen(true)}>REQUEST WL CLEARANCE ↗</button>
-          <a className="secondary" href="#wl-check">CHECK WL STATUS ↓</a>
-        </div>
-        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>0.0002 Eth</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
-      </div>
-      <div className="premint-agent hero-art">
-        <img className="broker-base" src="/space-broker-base.png" alt="Classified pixel alien Space Broker" />
-        <img className="broker-reveal" src="/space-broker-reveal.png" alt="" aria-hidden="true" />
-        <div className="scan-line" aria-hidden="true" />
-        <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-        <div className="agent-tag">AGENT SCAN // ACTIVE<br /><b>TRAITS: ENCRYPTED</b></div>
-      </div>
-    </section>
-
-    <TransmissionTicker />
-
-    <section className="premint-access" id="wl-check">
-      <div className="access-copy"><p>ACCESS PROTOCOL // 001</p><h2>REQUEST CLEARANCE.<br /><span>AWAIT THE SIGNAL.</span></h2><small>Complete the X mission, register one EVM wallet, then return here when the clearance database goes live.</small></div>
-      <div className="access-grid"><WhitelistChecker /><SocialOrbit /></div>
-    </section>
-
-    <section className="locked-files" aria-label="Locked post-mint systems">
-      {["PORTFOLIO UNIVERSE", "FILE 51", "MOTHERSHIP SIGNAL"].map((title, index) => <article key={title}><span>0{index + 1}</span><div><small>ACCESS DENIED</small><h3>{title}</h3></div><b>LOCKED</b></article>)}
-    </section>
-
-    <footer className="premint-footer"><a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a><p>Follow the space economy. The truth is in the files.</p><div><a href={socialLinks.x} target="_blank" rel="noreferrer">X ↗</a><a href={socialLinks.discord} target="_blank" rel="noreferrer">DISCORD ↗</a><a href={socialLinks.opensea} target="_blank" rel="noreferrer">OPENSEA ↗</a></div></footer>
-    <AudioToggle entrance />
-    {formOpen && <WhitelistApplication onClose={() => setFormOpen(false)} />}
-  </main>;
 }
 
 function PortfolioUniverse() {
@@ -332,12 +142,12 @@ function PortfolioUniverse() {
     <div className="allocator-panel">
       <div className="card-top"><span>BUILD YOUR UNIVERSE</span><b>100% TOTAL</b></div>
       <p className="allocator-help">Move any slider. Its planet grows or shrinks, while the other allocations automatically rebalance to keep your universe at exactly 100%.</p>
-      <div className="allocation-controls">{assets.map((asset, index) => <label key={asset.ticker}>
-        <span className="asset-swatch" style={{ background: asset.color }} /><span className="control-name"><b>{asset.name}</b><small>{asset.ticker}</small></span><output>{allocations[index]}%</output>
+      <div className="allocation-controls">{assets.map((asset, index) => <label key={asset.ticker} title={asset.description}>
+        <span className="asset-swatch" style={{ background: asset.color }} /><span className="control-name"><b>{asset.name}</b><small>{asset.ticker} · ETHEREUM</small></span><output>{allocations[index]}%</output>
         <input type="range" min="0" max="60" step="1" value={allocations[index]} onChange={(event) => changeAllocation(index, Number(event.target.value))} style={{ accentColor: asset.color }} aria-label={`${asset.name} allocation`} />
       </label>)}</div>
       <button className="reset-universe" onClick={() => setAllocations(defaults)}>RESET TO MISSION DEFAULT</button>
-      <p className="allocator-note">Planning tool only. Moving these sliders does not buy or sell assets.</p>
+      <p className="allocator-note">Concept planner only—this does not buy, hold or sell tokens. xStocks availability and eligibility vary by country.</p>
     </div>
   </div>;
 }
@@ -466,7 +276,7 @@ function AbductionGame() {
   </div>;
 }
 
-function PostMintSite() {
+export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   return <main>
@@ -474,7 +284,7 @@ function PostMintSite() {
       <a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a>
       <button className="menu-button" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">MENU</button>
       <nav className={menuOpen ? "open" : ""} onClick={() => setMenuOpen(false)}>
-        <a href="#mission">MISSION CONTROL</a><a href="#signals">SIGNAL FEED</a><a href="#classified">CLASSIFIED</a><a href="#abduction">ABDUCTION</a>
+        <a href="#about">THE MISSION</a><a href="#mission">MISSION CONTROL</a><a href="#signals">SIGNAL FEED</a><a href="#classified">CLASSIFIED</a><a href="#abduction">ABDUCTION</a>
         <a className="mobile-social" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">OPENSEA ↗</a>
         <a className="mobile-social" href="https://x.com/spacebrokers_" target="_blank" rel="noreferrer">X ↗</a>
         <a className="mobile-social" href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">DISCORD ↗</a>
@@ -489,46 +299,55 @@ function PostMintSite() {
     <section className="hero" id="top">
       <div className="stars" aria-hidden="true" />
       <div className="hero-copy">
-        <p className="eyebrow"><span /> TRANSMISSION RECEIVED // ROBINHOOD CHAIN</p>
+        <p className="eyebrow"><span /> PUBLIC TRANSMISSION // ACCESS GRANTED</p>
         <h1>THE MARKET IS<br /><em>BIGGER THAN EARTH.</em></h1>
-        <p className="lead">Classified alien agents gaining exposure to the companies, commodities and technologies shaping humanity&apos;s future in space.</p>
+        <p className="lead">A pixel-agent collection, space-economy intelligence network and playable classified universe built for everyone watching what comes next.</p>
         <div className="hero-actions"><a className="primary" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a><a className="secondary" href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">JOIN DISCORD ↗</a></div>
-        <div className="hero-stats"><div><strong>2,222</strong><span>AGENTS</span></div><div><strong>0.0002 Eth</strong><span>MINT PRICE</span></div><div><strong>3</strong><span>MAX / WALLET</span></div></div>
+        <div className="hero-stats"><div><strong>OPEN</strong><span>PUBLIC PHASE</span></div><div><strong>132+</strong><span>CREATED TRAITS</span></div><div><strong>24/7</strong><span>SIGNAL ACCESS</span></div></div>
       </div>
       <div className="hero-art">
-        <img className="broker-base" src="/space-broker-base.png" alt="Pixel alien Space Broker" />
-        <img className="broker-reveal" src="/space-broker-reveal.png" alt="" aria-hidden="true" />
+        <img className="collection-reel" src="/space-brokers-collection.gif" alt="Animated selection of Space Brokers NFT characters" />
         <div className="scan-line" aria-hidden="true" />
         <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
-        <div className="agent-tag">TRAIT SCAN // ACTIVE<br /><b>IDENTITY: RECLASSIFYING</b></div>
+        <div className="agent-tag">AGENT ARCHIVE // ROTATING<br /><b>MULTIPLE IDENTITIES DETECTED</b></div>
       </div>
     </section>
 
     <TransmissionTicker />
 
+    <section className="section about" id="about">
+      <div className="section-heading"><p>01 // THE MISSION</p><h2>MORE THAN A <span>PROFILE PICTURE.</span></h2><small>The whitelist was only the first transmission. The wider Space Brokers universe is now open.</small></div>
+      <div className="mission-grid">
+        <article><span>01</span><h3>OWN AN AGENT</h3><p>Each Space Broker is assembled from hand-built pixel traits spanning species, outfits, eyewear, headwear and classified accessories.</p></article>
+        <article><span>02</span><h3>FOLLOW THE ECONOMY</h3><p>Explore the companies, infrastructure and technologies shaping launch, satellites, lunar operations and the wider space economy.</p></article>
+        <article><span>03</span><h3>ENTER THE ARCHIVE</h3><p>Read sourced space signals, open evidence-labelled conspiracy files and compete in the UFO Abduction arcade mission.</p></article>
+      </div>
+      <div className="collection-brief">
+        <div><p>THE COLLECTION</p><h3>CLASSIFIED AGENTS.<br />PUBLIC MISSION.</h3></div>
+        <ul><li>Original 32×32 pixel artwork</li><li>Trait-rich alien identities</li><li>Holder-led community access</li><li>Future Mothership ecosystem</li></ul>
+        <a className="primary" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">OPEN COLLECTION ↗</a>
+      </div>
+    </section>
+
     <section className="section mission" id="mission">
-      <div className="section-heading"><p>01 // MISSION CONTROL</p><h2>FOLLOW THE <span>SPACE ECONOMY.</span></h2><small>One transparent mission. Six focused divisions. Every move recorded.</small></div>
+      <div className="section-heading"><p>02 // MISSION CONTROL</p><h2>BUILD YOUR <span>ONCHAIN UNIVERSE.</span></h2><small>Allocate across space-themed tokenized equities available through the xStocks ecosystem on Ethereum.</small></div>
       <PortfolioUniverse />
     </section>
 
     <section className="section signals" id="signals">
-      <div className="section-heading row"><div><p>02 // SIGNAL FEED</p><h2>LATEST FROM <span>ORBIT.</span></h2></div><small>VERIFIED SOURCE LINKS</small></div>
+      <div className="section-heading row"><div><p>03 // SIGNAL FEED</p><h2>LATEST FROM <span>ORBIT.</span></h2></div><small>VERIFIED SOURCE LINKS</small></div>
       <div className="signal-list">{signals.map((signal, i) => <button className="signal-entry" key={signal.title} onClick={() => setActiveArticle({ eyebrow: `${signal.tag} // ${signal.date}`, title: signal.title, body: signal.body, sourceLabel: signal.sourceLabel, sourceUrl: signal.sourceUrl })}><div className="signal-no">0{i + 1}</div><div><span>{signal.tag} · {signal.date}</span><h3>{signal.title}</h3><p>{signal.copy}</p></div><b>↗</b></button>)}</div>
     </section>
 
     <section className="section classified" id="classified">
       <div className="file-visual"><img src="/classified-file.png" alt="Pixel classified folder" /></div>
-      <div className="file-copy"><p>03 // CLASSIFIED ARCHIVE</p><h2>THE TRUTH IS<br /><span>IN THE FILES.</span></h2><p>Documented encounters, witness accounts and theories—clearly separated by evidence level. Explore the strange without pretending every claim is fact.</p><div className="file-list">{files.map((file) => <button key={file.code} onClick={() => setActiveArticle({ eyebrow: `${file.code} // ${file.status}`, title: file.title, body: file.body, sourceLabel: file.sourceLabel, sourceUrl: file.sourceUrl })}><span>{file.code}<i>{file.status}</i></span><b>{file.title}</b><em>→</em></button>)}</div></div>
+      <div className="file-copy"><p>04 // CLASSIFIED ARCHIVE</p><h2>THE TRUTH IS<br /><span>IN THE FILES.</span></h2><p>Documented encounters, witness accounts and theories—clearly separated by evidence level. Explore the strange without pretending every claim is fact.</p><div className="file-list">{files.map((file) => <button key={file.code} onClick={() => setActiveArticle({ eyebrow: `${file.code} // ${file.status}`, title: file.title, body: file.body, sourceLabel: file.sourceLabel, sourceUrl: file.sourceUrl })}><span>{file.code}<i>{file.status}</i></span><b>{file.title}</b><em>→</em></button>)}</div></div>
     </section>
 
-    <section className="section abduction-section" id="abduction"><div className="section-heading"><p>04 // UFO ABDUCTION</p><h2>COLLECT THE SPECIMENS.<br /><span>ESCAPE THE SIGNAL.</span></h2><small>Abduct moving targets, dodge missiles and searchlights, then reach the portal before your three shields are gone.</small></div><AbductionGame /></section>
+    <section className="section abduction-section" id="abduction"><div className="section-heading"><p>05 // UFO ABDUCTION</p><h2>COLLECT THE SPECIMENS.<br /><span>ESCAPE THE SIGNAL.</span></h2><small>Abduct moving targets, dodge missiles and searchlights, then reach the portal before your three shields are gone.</small></div><AbductionGame /></section>
     <section className="final-cta"><p>TRANSMISSION // 0051</p><h2>THEY WATCH THE SKY.<br /><span>WE WATCH THE MARKET.</span></h2><div><a className="primary" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">EXPLORE ON OPENSEA ↗</a><a className="secondary" href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">JOIN THE DISCORD ↗</a></div></section>
     <footer><a className="mini-brand" href="#top"><span>SPACE</span><b>BROKERS</b></a><p>Built for the space economy. Not financial advice.</p><div><a href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">OPENSEA ↗</a><a href="https://x.com/spacebrokers_" target="_blank" rel="noreferrer">X ↗</a><a href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">DISCORD ↗</a></div></footer>
     <AudioToggle />
     {activeArticle && <ArticleModal article={activeArticle} onClose={() => setActiveArticle(null)} />}
   </main>;
-}
-
-export default function Home() {
-  return process.env.NEXT_PUBLIC_SITE_PHASE === "postmint" ? <PostMintSite /> : <PreMintSite />;
 }
