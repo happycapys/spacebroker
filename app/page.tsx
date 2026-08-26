@@ -300,10 +300,9 @@ export default function Home() {
       <div className="stars" aria-hidden="true" />
       <div className="hero-copy">
         <p className="eyebrow"><span /> PUBLIC TRANSMISSION // ACCESS GRANTED</p>
-        <h1>THE MARKET IS<br /><em>BIGGER THAN EARTH.</em></h1>
+        <h1>SPACE HAS ENTERED<br /><em>THE PORTFOLIO.</em></h1>
         <p className="lead">A pixel-agent collection, space-economy intelligence network and playable classified universe built for everyone watching what comes next.</p>
-        <div className="hero-actions"><a className="primary" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a><a className="secondary" href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">JOIN DISCORD ↗</a></div>
-        <div className="hero-stats"><div><strong>OPEN</strong><span>PUBLIC PHASE</span></div><div><strong>132+</strong><span>CREATED TRAITS</span></div><div><strong>24/7</strong><span>SIGNAL ACCESS</span></div></div>
+        <div className="hero-actions"><a className="primary" href="https://opensea.io/collection/spacebrokers" target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a><a className="secondary" href="https://discord.gg/2696H6XJH" target="_blank" rel="noreferrer">JOIN DISCORD ↗</a><a className="secondary x-button" href="https://x.com/spacebrokers_" target="_blank" rel="noreferrer">FOLLOW X ↗</a></div>
       </div>
       <div className="hero-art">
         <img className="collection-reel" src="/space-brokers-collection.gif" alt="Animated selection of Space Brokers NFT characters" />
@@ -314,6 +313,11 @@ export default function Home() {
     </section>
 
     <TransmissionTicker />
+
+    <a className="calendar-feature" href="https://nftcalendar.io/event/space-brokers/" target="_blank" rel="noreferrer" aria-label="View Space Brokers on NFT Calendar">
+      <span><small>FEATURED DROP</small><strong>SPACE BROKERS × NFT CALENDAR</strong><i>VIEW EVENT LISTING ↗</i></span>
+      <img src="/nft-calendar-feature.webp" alt="NFT Calendar" />
+    </a>
 
     <section className="section about" id="about">
       <div className="section-heading"><p>01 // THE MISSION</p><h2>MORE THAN A <span>PROFILE PICTURE.</span></h2><small>The whitelist was only the first transmission. The wider Space Brokers universe is now open.</small></div>
