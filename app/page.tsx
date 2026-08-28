@@ -26,16 +26,16 @@ const blockscoutApi = "https://robinhoodchain.blockscout.com/api/v2";
 const robinhoodRpc = "https://rpc.mainnet.chain.robinhood.com";
 
 const floorListings = [
-  { id: "766", price: "$4.29", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/175afaa86690547801ff96d0fa9a54/21175afaa86690547801ff96d0fa9a54.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/766" },
-  { id: "1018", price: "$4.29", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/0d508293f1dd23bd240704d8211840/d70d508293f1dd23bd240704d8211840.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/1018" },
-  { id: "1062", price: "$4.29", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/77b8f59ed041365a277615897ba62a/de77b8f59ed041365a277615897ba62a.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/1062" },
-  { id: "819", price: "$4.36", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/7ab2464110ecc943aa8a1742e04eb0/b67ab2464110ecc943aa8a1742e04eb0.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/819" },
+  { id: "766", price: "0.001 ETH", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/175afaa86690547801ff96d0fa9a54/21175afaa86690547801ff96d0fa9a54.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/766" },
+  { id: "1018", price: "0.001 ETH", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/0d508293f1dd23bd240704d8211840/d70d508293f1dd23bd240704d8211840.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/1018" },
+  { id: "1062", price: "0.001 ETH", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/77b8f59ed041365a277615897ba62a/de77b8f59ed041365a277615897ba62a.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/1062" },
+  { id: "819", price: "0.001 ETH", image: "https://i2c.seadn.io/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/7ab2464110ecc943aa8a1742e04eb0/b67ab2464110ecc943aa8a1742e04eb0.png?w=1000", url: "https://opensea.io/item/robinhood/0xea35558af012ab6e75f72b7ec946970982587af6/819" },
 ];
 
 type OwnedNft = { id: string; name: string; image: string; url?: string };
 type MarketData = {
   floor: { display: string; value?: number | null; currency?: string } | null;
-  spacex: { priceUsd: number | null; change24h: number | null; symbol: string; url?: string } | null;
+  spacex: { priceEth: number | null; change24h: number | null; symbol: string; url?: string } | null;
   updatedAt?: string;
 };
 type NftMetadata = { name?: string; image?: string; image_url?: string };
@@ -98,6 +98,10 @@ const robinhoodCall = async (data: string) => {
 
 const formatWallet = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
+const formatEthPrice = (value?: number | null) => value === null || value === undefined || !Number.isFinite(value)
+  ? "SYNCING"
+  : `${value.toLocaleString(undefined, { maximumSignificantDigits: 6, maximumFractionDigits: 18 })} ETH`;
+
 function Brand() {
   return <a className="brand" href="#top" aria-label="Space Brokers home">
     <img src="/space-brokers-logo-neon.png" alt="Space Brokers" />
@@ -112,12 +116,13 @@ function NftArtwork({ nft, className = "" }: { nft: OwnedNft; className?: string
 }
 
 function MarketTicker({ market }: { market: MarketData }) {
-  const spacexPrice = market.spacex?.priceUsd === null || market.spacex?.priceUsd === undefined ? "SYNCING" : `$${market.spacex.priceUsd.toFixed(2)}`;
+  const spacexPrice = formatEthPrice(market.spacex?.priceEth);
+  const floorPrice = market.floor?.currency === "ETH" ? market.floor.display : "0.001 ETH";
   const change = market.spacex?.change24h;
   const items = [
-    { label: "SPACE BROKERS FLOOR", value: market.floor?.display ?? "$4.29", href: links.opensea },
+    { label: "SPACE BROKERS FLOOR", value: floorPrice, href: links.opensea },
     { label: "SPACEX TOKEN", value: spacexPrice, href: market.spacex?.url ?? `https://etherscan.io/token/${spacexContract}` },
-    { label: "24H SIGNAL", value: change === null || change === undefined ? "SYNCING" : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`, tone: change !== null && change !== undefined && change < 0 ? "down" : "up" },
+    { label: "SPACEX 24H CHANGE", value: change === null || change === undefined ? "SYNCING" : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`, tone: change !== null && change !== undefined && change < 0 ? "down" : "up" },
     { label: "CREW SUPPLY", value: "2,222" },
     { label: "NETWORK", value: "ROBINHOOD CHAIN" },
     { label: "REWARD ASSET", value: "SPCXx / ETH" },
@@ -320,7 +325,7 @@ function StakingTerminal({ market }: { market: MarketData }) {
       </div>
       <aside className="rewards-panel">
         <div className="panel-heading compact"><div><small>MODULE 02</small><h2>REWARD CORE</h2></div><span className="pulse-label"><i /> IDLE</span></div>
-        <div className="token-orb" aria-label="SpaceX reward token display"><span className="orb-orbit"><i /></span><div><small>REWARD TOKEN</small><strong>SPACEX</strong><b>{market.spacex?.priceUsd ? `$${market.spacex.priceUsd.toFixed(2)}` : "ETH"}</b></div></div>
+        <div className="token-orb" aria-label="SpaceX reward token display"><span className="orb-orbit"><i /></span><div><small>REWARD TOKEN</small><strong>SPACEX</strong><b>{formatEthPrice(market.spacex?.priceEth)}</b></div></div>
         <div className="reward-balance"><small>CLAIMABLE REWARDS</small><strong>0.00 <span>SPACEX</span></strong><p>Rewards begin accruing after an eligible Space Broker is successfully deployed.</p></div>
         <dl className="reward-stats">
           <div><dt>ACTIVE CREW</dt><dd>0</dd></div><div><dt>BASE OUTPUT</dt><dd>PENDING</dd></div>
@@ -334,13 +339,14 @@ function StakingTerminal({ market }: { market: MarketData }) {
 }
 
 function OpenSeaFloor({ market }: { market: MarketData }) {
+  const floorPrice = market.floor?.currency === "ETH" ? market.floor.display : "0.001 ETH";
   return <div className="opensea-floor">
     <div className="floor-top"><span><i /> OPENSEA FLOOR ITEMS</span><a href={links.opensea} target="_blank" rel="noreferrer">VIEW ALL ↗</a></div>
     <div className="floor-listings">{floorListings.map((listing) => <a key={listing.id} href={listing.url} target="_blank" rel="noreferrer" className="floor-listing">
       <span className="listing-image"><img src={listing.image} alt={`Space Broker #${listing.id} listed on OpenSea`} /></span>
       <span className="listing-data"><small>SPACE #{listing.id}</small><b>{listing.price}</b><em>BUY NOW ↗</em></span>
     </a>)}</div>
-    <div className="floor-readout"><small>SPACE BROKERS COLLECTION</small><strong>FLOOR // {market.floor?.display ?? "$4.29"}</strong><p>Genuine Space Brokers listings linked to their individual OpenSea pages. Live floor telemetry refreshes through the private market feed.</p><a href={links.opensea} target="_blank" rel="noreferrer">OPEN LIVE COLLECTION ↗</a></div>
+    <div className="floor-readout"><small>SPACE BROKERS COLLECTION</small><strong>FLOOR // {floorPrice}</strong><p>Genuine Space Brokers listings linked to their individual OpenSea pages. Live floor telemetry refreshes through the private market feed.</p><a href={links.opensea} target="_blank" rel="noreferrer">OPEN LIVE COLLECTION ↗</a></div>
     <div className="floor-contract"><small>COLLECTION CONTRACT</small><b>{collectionContract}</b></div>
   </div>;
 }
@@ -374,7 +380,7 @@ function ProtocolStatus() {
 
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [market, setMarket] = useState<MarketData>({ floor: { display: "$4.29" }, spacex: null });
+  const [market, setMarket] = useState<MarketData>({ floor: { display: "0.001 ETH", value: 0.001, currency: "ETH" }, spacex: null });
 
   useEffect(() => {
     let cancelled = false;
@@ -387,9 +393,11 @@ export default function Home() {
       } catch {
         try {
           const response = await fetch(`https://api.dexscreener.com/token-pairs/v1/ethereum/${spacexContract}`);
-          const pairs = await response.json() as Array<{ priceUsd?: string; priceChange?: { h24?: number }; liquidity?: { usd?: number }; baseToken?: { symbol?: string }; url?: string }>;
-          const pair = [...pairs].sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
-          if (!cancelled && pair) setMarket((current) => ({ ...current, spacex: { priceUsd: Number(pair.priceUsd), change24h: pair.priceChange?.h24 ?? null, symbol: pair.baseToken?.symbol ?? "SPCXx", url: pair.url } }));
+          const pairs = await response.json() as Array<{ priceNative?: string; priceChange?: { h24?: number }; liquidity?: { usd?: number }; baseToken?: { symbol?: string }; quoteToken?: { symbol?: string }; url?: string }>;
+          const pair = pairs
+            .filter((item) => ["ETH", "WETH"].includes(item.quoteToken?.symbol?.toUpperCase() ?? ""))
+            .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
+          if (!cancelled && pair) setMarket((current) => ({ ...current, spacex: { priceEth: Number(pair.priceNative), change24h: pair.priceChange?.h24 ?? null, symbol: pair.baseToken?.symbol ?? "SPCXx", url: pair.url } }));
         } catch { /* static floor snapshot remains visible */ }
       }
     };

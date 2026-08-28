@@ -15,15 +15,13 @@ const asNumber = (value) => {
 
 const formatPrice = (price) => {
   if (!price) return null;
-  const directUsd = asNumber(price.usd ?? price.usd_value ?? price.price_usd);
-  if (directUsd !== null) return { value: directUsd, currency: "USD", display: `$${directUsd.toFixed(2)}` };
   const decimals = asNumber(price.decimals) ?? 18;
   const raw = asNumber(price.value ?? price.current?.value);
   if (raw === null) return null;
   const value = raw / (10 ** decimals);
   const currency = String(price.currency ?? price.current?.currency ?? "ETH").toUpperCase();
-  const display = ["USDC", "USDT", "USD"].includes(currency) ? `$${value.toFixed(2)}` : `${value.toLocaleString(undefined, { maximumSignificantDigits: 5 })} ${currency}`;
-  return { value, currency, display };
+  if (!["ETH", "WETH"].includes(currency)) return null;
+  return { value, currency: "ETH", display: `${value.toLocaleString(undefined, { maximumSignificantDigits: 5 })} ETH` };
 };
 
 export const handler = async () => {
@@ -38,7 +36,9 @@ export const handler = async () => {
     ];
     const [dexResponse, listingsResponse, statsResponse] = await Promise.all(requests);
     const pairs = dexResponse?.ok ? await dexResponse.json() : [];
-    const pair = [...(Array.isArray(pairs) ? pairs : [])].sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
+    const pair = (Array.isArray(pairs) ? pairs : [])
+      .filter((item) => ["ETH", "WETH"].includes(String(item.quoteToken?.symbol ?? "").toUpperCase()))
+      .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
 
     const listingsData = listingsResponse?.ok ? await listingsResponse.json() : {};
     const listings = listingsData.listings ?? listingsData.orders ?? [];
@@ -51,14 +51,14 @@ export const handler = async () => {
       const value = asNumber(total.floor_price ?? total.floorPrice);
       if (value !== null) {
         const currency = String(total.floor_price_symbol ?? total.floorPriceSymbol ?? "ETH").toUpperCase();
-        floor = { value, currency, display: ["USDC", "USDT", "USD"].includes(currency) ? `$${value.toFixed(2)}` : `${value.toLocaleString(undefined, { maximumSignificantDigits: 5 })} ${currency}` };
+        if (["ETH", "WETH"].includes(currency)) floor = { value, currency: "ETH", display: `${value.toLocaleString(undefined, { maximumSignificantDigits: 5 })} ETH` };
       }
     }
 
     return json(200, {
       floor,
       spacex: pair ? {
-        priceUsd: asNumber(pair.priceUsd),
+        priceEth: asNumber(pair.priceNative),
         change24h: asNumber(pair.priceChange?.h24),
         liquidityUsd: asNumber(pair.liquidity?.usd),
         symbol: pair.baseToken?.symbol ?? "SPCXx",
