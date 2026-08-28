@@ -62,6 +62,13 @@ const imageCandidates = (value: string) => {
   return [`https://${cid}.ipfs.w3s.link${suffix}`, `https://dweb.link/ipfs/${cid}${suffix}`, `https://gateway.pinata.cloud/ipfs/${cid}${suffix}`, value].filter((item, index, all) => item && all.indexOf(item) === index);
 };
 
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs = 12_000) => {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try { return await fetch(url, { ...options, signal: controller.signal }); }
+  finally { window.clearTimeout(timer); }
+};
+
 const decodeAbiString = (hex: string) => {
   const clean = hex.replace(/^0x/, "");
   if (clean.length < 128) return "";
@@ -77,7 +84,7 @@ const readMetadata = async (uri: string, id: string): Promise<OwnedNft> => {
       const metadata = JSON.parse(atob(uri.split(",")[1]));
       return { id, name: metadata.name || `Space Broker #${id}`, image: ipfsToHttp(metadata.image) };
     }
-    const response = await fetch(ipfsToHttp(uri));
+    const response = await fetchWithTimeout(ipfsToHttp(uri), { cache: "no-store" });
     const metadata = await response.json();
     return { id, name: metadata.name || `Space Broker #${id}`, image: ipfsToHttp(metadata.image || metadata.image_url) };
   } catch {
@@ -86,7 +93,7 @@ const readMetadata = async (uri: string, id: string): Promise<OwnedNft> => {
 };
 
 const robinhoodCall = async (data: string) => {
-  const response = await fetch(robinhoodRpc, {
+  const response = await fetchWithTimeout(robinhoodRpc, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: collectionContract, data }, "latest"] }),
@@ -191,13 +198,14 @@ function StakingTerminal({ market }: { market: MarketData }) {
       setScanning(true);
       setMessage("Scanning OpenSea and the Space Brokers collection contract…");
       try {
-        const mediaResponse = await fetch(`/api/wallet-nfts?wallet=${encodeURIComponent(wallet)}`);
+        const mediaResponse = await fetchWithTimeout(`/api/wallet-nfts?wallet=${encodeURIComponent(wallet)}`, {}, 15_000);
         if (!mediaResponse.ok) throw new Error("OpenSea media route unavailable");
         const media = await mediaResponse.json() as { nfts?: OwnedNft[] };
         if (cancelled) return;
         const nfts = media.nfts ?? [];
         setOwnedNfts(nfts);
         setMessage(nfts.length ? `${nfts.length} Space Broker${nfts.length === 1 ? "" : "s"} loaded with verified OpenSea media.` : "No Space Brokers were found in this wallet on Robinhood Chain.");
+        setScanning(false);
         return;
       } catch {
         // Non-Netlify deployments continue through the onchain index below.
@@ -206,7 +214,7 @@ function StakingTerminal({ market }: { market: MarketData }) {
         const indexedItems: BlockscoutNftItem[] = [];
         let nextUrl = `${blockscoutApi}/addresses/${wallet}/nft?type=ERC-721`;
         for (let page = 0; page < 25 && nextUrl; page += 1) {
-          const response = await fetch(nextUrl);
+          const response = await fetchWithTimeout(nextUrl);
           if (!response.ok) throw new Error("Explorer scan unavailable");
           const data = await response.json() as { items?: BlockscoutNftItem[]; next_page_params?: Record<string, string | number> | null };
           indexedItems.push(...(data.items ?? []));
@@ -214,18 +222,36 @@ function StakingTerminal({ market }: { market: MarketData }) {
           const params = new URLSearchParams({ type: "ERC-721", ...Object.fromEntries(Object.entries(data.next_page_params).map(([key, value]) => [key, String(value)])) });
           nextUrl = `${blockscoutApi}/addresses/${wallet}/nft?${params}`;
         }
-        const matches: OwnedNft[] = indexedItems.flatMap((item) => {
+        const indexedMatches: OwnedNft[] = indexedItems.flatMap((item) => {
           const token = item.token ?? {};
           const instance = item.token_instance ?? item;
           const address = String(token.address_hash ?? token.address ?? item.token_address ?? "").toLowerCase();
           if (address !== collectionContract) return [];
           const id = String(instance.id ?? item.id ?? item.token_id ?? "");
           const metadata = instance.metadata ?? item.metadata ?? {};
-          return [{ id, name: metadata.name || `Space Broker #${id}`, image: ipfsToHttp(metadata.image || metadata.image_url || instance.image_url || item.image_url) }];
+          return [{ id, name: metadata.name || `Space Broker #${id}`, image: "" }];
         });
         if (cancelled) return;
-        setOwnedNfts(matches);
-        setMessage(matches.length ? `${matches.length} Space Broker${matches.length === 1 ? "" : "s"} detected and ready for selection.` : "No Space Brokers were found in this wallet on Robinhood Chain.");
+        if (!indexedMatches.length) {
+          setOwnedNfts([]);
+          setMessage("No Space Brokers were found in this wallet on Robinhood Chain.");
+          return;
+        }
+        setMessage(`${indexedMatches.length} holdings found. Refreshing current on-chain artwork…`);
+        const refreshed: OwnedNft[] = [];
+        for (let start = 0; start < indexedMatches.length; start += 12) {
+          const batch = await Promise.all(indexedMatches.slice(start, start + 12).map(async (nft) => {
+            try {
+              const idWord = BigInt(nft.id).toString(16).padStart(64, "0");
+              const result = await robinhoodCall(`0xc87b56dd${idWord}`);
+              return { ...await readMetadata(decodeAbiString(result), nft.id), url: nft.url };
+            } catch { return nft; }
+          }));
+          if (cancelled) return;
+          refreshed.push(...batch);
+          setOwnedNfts([...refreshed]);
+        }
+        setMessage(`${refreshed.length} Space Broker${refreshed.length === 1 ? "" : "s"} refreshed from current contract metadata.`);
       } catch {
         try {
           const addressWord = wallet.replace(/^0x/, "").padStart(64, "0");
@@ -306,11 +332,11 @@ function StakingTerminal({ market }: { market: MarketData }) {
         </div>
         {wallet && <div className="nft-bay">
           <div className="nft-bay-heading"><span><small>WALLET CREW</small><b>{mode === "stake" ? "AVAILABLE TO STAKE" : "STAKED CREW"}</b></span><em>{scanning ? "SCANNING…" : `${ownedNfts.length} DETECTED`}</em></div>
-          {scanning ? <div className="nft-loading"><i /><span>READING COLLECTION CONTRACT</span></div>
-            : mode === "unstake" ? <div className="nft-empty"><strong>STAKING CONTRACT NOT LINKED</strong><span>Staked crew will appear here once the staking contract is supplied.</span></div>
+          {mode === "unstake" ? <div className="nft-empty"><strong>STAKING CONTRACT NOT LINKED</strong><span>Staked crew will appear here once the staking contract is supplied.</span></div>
             : ownedNfts.length ? <div className="nft-grid">{ownedNfts.map((nft) => <button key={nft.id} className={selected.includes(nft.id) ? "selected" : ""} onClick={() => toggleNft(nft.id)} aria-pressed={selected.includes(nft.id)}>
               <span className="nft-image">{nft.image ? <NftArtwork nft={nft} /> : <span className="nft-no-image">METADATA<br />UNAVAILABLE</span>}</span><span className="nft-name"><b>{nft.name}</b><small>TOKEN #{nft.id}</small></span><i>{selected.includes(nft.id) ? "✓" : "+"}</i>
             </button>)}</div>
+            : scanning ? <div className="nft-loading"><i /><span>READING COLLECTION CONTRACT</span></div>
             : <div className="nft-empty"><strong>NO CREW DETECTED</strong><span>This wallet does not currently hold NFTs from the linked Space Brokers contract.</span></div>}
         </div>}
         <div className="selection-bar">
@@ -418,7 +444,7 @@ export default function Home() {
     <MarketTicker market={market} />
     <section className="cockpit-hero" id="staking">
       <div className="starfield" aria-hidden="true" />
-      <div className="hero-copy"><img className="hero-brand-logo" src="/space-brokers-logo-neon.png" alt="Space Brokers" /><small>MOTHERSHIP // STAKING PROTOCOL</small><h1>DEPLOY YOUR CREW.<br /><span>EARN SPACEX.</span></h1><p>Welcome aboard the Mothership. Stake eligible Space Brokers, build your fleet multiplier and claim SpaceX token rewards from one onboard command centre.</p><div className="hero-meta"><span><i /> PROTOCOL: PRE-FLIGHT</span><span><i /> REWARD: SPACEX</span><span><i /> CREW: 2,222</span></div></div>
+      <p className="staking-intro">Welcome aboard the Mothership. Stake eligible Space Brokers, build your fleet multiplier and claim SpaceX token rewards from one onboard command centre.</p>
       <StakingTerminal market={market} />
     </section>
     <MissionBrief market={market} /><ProtocolStatus />
