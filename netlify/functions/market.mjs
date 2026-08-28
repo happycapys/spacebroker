@@ -2,7 +2,7 @@ const json = (statusCode, body) => ({
   statusCode,
   headers: {
     "content-type": "application/json; charset=utf-8",
-    "cache-control": "public, max-age=30, s-maxage=60, stale-while-revalidate=300",
+    "cache-control": "public, max-age=15, s-maxage=30",
     "access-control-allow-origin": "*",
   },
   body: JSON.stringify(body),
@@ -12,6 +12,8 @@ const asNumber = (value) => {
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
 };
+
+const collectionContract = "0xea35558af012ab6e75f72b7ec946970982587af6";
 
 const formatPrice = (price) => {
   if (!price) return null;
@@ -36,14 +38,27 @@ export const handler = async () => {
     ];
     const [dexResponse, listingsResponse, statsResponse] = await Promise.all(requests);
     const pairs = dexResponse?.ok ? await dexResponse.json() : [];
-    const pair = (Array.isArray(pairs) ? pairs : [])
-      .filter((item) => ["ETH", "WETH"].includes(String(item.quoteToken?.symbol ?? "").toUpperCase()))
-      .sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
+    const pair = [...(Array.isArray(pairs) ? pairs : [])].sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0))[0];
 
     const listingsData = listingsResponse?.ok ? await listingsResponse.json() : {};
     const listings = listingsData.listings ?? listingsData.orders ?? [];
     const lowestListing = listings[0] ?? null;
     let floor = formatPrice(lowestListing?.price);
+
+    const listingCards = apiKey ? await Promise.all(listings.slice(0, 4).flatMap((listing) => {
+      const offer = listing.protocol_data?.parameters?.offer?.[0] ?? listing.offer?.[0] ?? {};
+      const id = String(listing.identifier ?? listing.token_id ?? offer.identifierOrCriteria ?? offer.identifier ?? "");
+      if (!id) return [];
+      const price = formatPrice(listing.price);
+      const fallback = { id, price: price?.currency === "ETH" ? price.display : "ETH", image: "", url: `https://opensea.io/item/robinhood/${collectionContract}/${id}` };
+      return [fetch(`https://api.opensea.io/api/v2/chain/robinhood/contract/${collectionContract}/nfts/${id}`, { headers, signal: AbortSignal.timeout(8_000) })
+        .then(async (response) => response.ok ? response.json() : {})
+        .then((payload) => {
+          const nft = payload.nft ?? payload;
+          return { ...fallback, image: nft.image_url || nft.display_image_url || "", url: nft.opensea_url || fallback.url };
+        })
+        .catch(() => fallback)];
+    })) : [];
 
     const statsData = statsResponse?.ok ? await statsResponse.json() : {};
     const total = statsData.total ?? statsData.stats ?? {};
@@ -57,8 +72,9 @@ export const handler = async () => {
 
     return json(200, {
       floor,
+      listings: listingCards,
       spacex: pair ? {
-        priceEth: asNumber(pair.priceNative),
+        priceUsd: asNumber(pair.priceUsd),
         change24h: asNumber(pair.priceChange?.h24),
         liquidityUsd: asNumber(pair.liquidity?.usd),
         symbol: pair.baseToken?.symbol ?? "SPCXx",
