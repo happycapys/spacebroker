@@ -6,7 +6,7 @@ SPACE BROKERS — NETLIFY SETUP
    Branch to deploy: main
    Base directory: leave blank
    Build command: npm run build
-   Publish directory: .next
+   Publish directory: out
    Functions directory: leave unchanged
 
 The included netlify.toml also supplies the build command, publish directory,
