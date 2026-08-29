@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type EthereumProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -43,6 +43,32 @@ type BlockscoutNftItem = {
   token?: { address_hash?: string; address?: string };
   token_instance?: { id?: string | number; image_url?: string; metadata?: NftMetadata };
 };
+
+type Article = { eyebrow: string; title: string; body: string[]; sourceLabel: string; sourceUrl: string };
+
+const signals = [
+  { tag: "ORBIT CONFIRMED", date: "AUG 16", title: "Rocket Lab-built platforms reach orbit for Globalstar", copy: "Eight spacecraft platforms are now supporting a new direct-to-device communications constellation.", body: ["Rocket Lab says eight satellite platforms it built for MDA Space successfully reached orbit on 15 August. The spacecraft are part of a Globalstar low-Earth-orbit constellation intended to support direct-to-device and IoT communications.", "The launch matters beyond rockets: it shows how spacecraft manufacturing, satellite components and orbital communications combine into one commercial infrastructure chain."], sourceLabel: "READ THE ROCKET LAB UPDATE", sourceUrl: "https://www.rocketlabusa.com/updates/rocket-lab-satellite-platforms-built-for-mda-space-successfully-reach-orbit-supporting-globalstar-direct-to-device-communications-services/" },
+  { tag: "NETWORK DEPLOYMENT", date: "AUG 05", title: "AST SpaceMobile launches BlueBird 11, 12 and 13", copy: "Three next-generation satellites have joined the push for broadband to ordinary phones from orbit.", body: ["AST SpaceMobile says BlueBird 11, 12 and 13 launched from Cape Canaveral on 5 August aboard a Falcon 9. The company is building a space-based cellular broadband network designed to connect standard mobile devices.", "The mission is an important deployment step, but the investment story still depends on successful commissioning, regulatory access, commercial partnerships and the cost of completing the constellation."], sourceLabel: "VIEW THE AST SPACEMOBILE MISSION PAGE", sourceUrl: "https://ast-science.com/next-gen-bluebird/" },
+  { tag: "DEFENCE CONTRACT", date: "AUG 17", title: "Rocket Lab joins the Space Force NITE-STAR programme", copy: "The company can now compete for work under a test-and-training contract with a $981 million ceiling.", body: ["Rocket Lab has been onboarded to the U.S. Space Force's NITE-STAR programme, making it eligible to compete for future task orders supporting space test and training infrastructure.", "The headline ceiling is not revenue already awarded to Rocket Lab. It is the maximum potential value of the wider programme, so future task-order wins—not the ceiling alone—will determine the commercial impact."], sourceLabel: "READ THE ROCKET LAB ANNOUNCEMENT", sourceUrl: "https://www.rocketlabusa.com/updates/new-blog-posrocket-lab-onboarded-to-u-s-space-forces-981m-nite-star-program-to-advance-space-test-and-training-infrastructure-program/" },
+];
+
+const files = [
+  { code: "FILE 001", status: "DOCUMENTED", title: "The Tic Tac Encounter", body: ["In November 2004, personnel attached to the USS Nimitz carrier group reported unusual aerial objects during training off Southern California. One of the three Navy videos later released by the Pentagon is associated with that period.", "The Department of Defense confirmed that the circulating footage was authentic Navy video and officially released it in 2020. Authentic military footage is not, by itself, proof of extraterrestrial technology; the object shown remains unidentified in the public record."], sourceLabel: "OPEN THE OFFICIAL DOD RELEASE", sourceUrl: "https://www.defense.gov/News/Releases/release/article/2165713/statement-by-the-department-of-defense-on-the-release-of-historical-navy-videos/" },
+  { code: "FILE 014", status: "WITNESS ACCOUNT", title: "Rendlesham Forest", body: ["In December 1980, U.S. Air Force personnel stationed near RAF Woodbridge and RAF Bentwaters reported unusual lights in Rendlesham Forest. Lieutenant Colonel Charles Halt's memorandum became the central official document connected to the incident.", "The UK National Archives holds the Halt memo and later Ministry of Defence correspondence. The material documents that reports were made; it does not establish an extraterrestrial explanation, and proposed explanations remain disputed."], sourceLabel: "EXPLORE THE UK NATIONAL ARCHIVES", sourceUrl: "https://www.nationalarchives.gov.uk/explore-the-collection/explore-by-time-period/postwar/ufo-reports/" },
+  { code: "FILE 051", status: "UNVERIFIED", title: "The Reverse-Engineering Programme", body: ["Claims that governments possess and secretly reverse-engineer recovered non-human craft have been repeated in testimony, interviews and popular culture. Publicly available claims have not produced independently verifiable hardware or data demonstrating extraterrestrial origin.", "The U.S. All-domain Anomaly Resolution Office says its historical review found no empirical evidence that the government or private companies had reverse-engineered extraterrestrial technology. That conclusion does not settle every allegation, but it means the programme remains an unverified claim—not an established fact."], sourceLabel: "READ THE AARO RECORDS", sourceUrl: "https://www.aaro.mil/UAP-Records/" },
+];
+
+function ArticleModal({ article, onClose }: { article: Article; onClose: () => void }) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
+  return <div className="modal-backdrop" onMouseDown={onClose} role="presentation"><article className="article-modal" role="dialog" aria-modal="true" aria-labelledby="article-title" onMouseDown={(event) => event.stopPropagation()}>
+    <button className="modal-close" onClick={onClose} aria-label="Close article">×</button><p>{article.eyebrow}</p><h2 id="article-title">{article.title}</h2>{article.body.map((paragraph) => <p className="article-body" key={paragraph}>{paragraph}</p>)}<a href={article.sourceUrl} target="_blank" rel="noreferrer">{article.sourceLabel} ↗</a><small>Source opens in a new tab. Space Brokers separates sourced records from speculation.</small>
+  </article></div>;
+}
+
 
 const ipfsToHttp = (value?: string) => {
   if (!value) return "";
@@ -105,7 +131,7 @@ const formatUsdPrice = (value?: number | null) => value === null || value === un
   : `$${value.toLocaleString(undefined, { maximumSignificantDigits: 6, maximumFractionDigits: 12 })}`;
 
 function Brand() {
-  return <a className="brand" href="#top" aria-label="Space Brokers home">
+  return <a className="brand" href="/" aria-label="Space Brokers home">
     <img src="/space-brokers-logo-neon.png" alt="Space Brokers" />
   </a>;
 }
@@ -127,7 +153,7 @@ function MarketTicker({ market }: { market: MarketData }) {
     { label: "SPACEX 24H CHANGE", value: change === null || change === undefined ? "SYNCING" : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`, tone: change !== null && change !== undefined && change < 0 ? "down" : "up" },
     { label: "CREW SUPPLY", value: "2,222" },
     { label: "NETWORK", value: "ROBINHOOD CHAIN" },
-    { label: "REWARD ASSET", value: "SPCXx / ETH" },
+    { label: "SEASON 1 REWARD", value: "TO BE ANNOUNCED" },
   ];
   const loop = [...items, ...items];
   return <div className="market-ticker" aria-label="Live Space Brokers market telemetry"><div className="ticker-track">{loop.map((item, index) => {
@@ -342,7 +368,7 @@ function StakingTerminal({ market }: { market: MarketData }) {
         <div className="selection-bar">
           <span><small>SELECTED CREW</small><strong>{selected.length}</strong></span>
           <span><small>ACTION</small><strong>{mode.toUpperCase()}</strong></span>
-          <span><small>EST. RATE</small><strong>— SPACEX / DAY</strong></span>
+          <span><small>EST. RATE</small><strong>PENDING</strong></span>
         </div>
         {!wallet
           ? <button className="primary-action calibrated" onClick={connect} disabled>{connecting ? "ESTABLISHING LINK…" : "STAKING UNDER CONSTRUCTION"}<span>⌁</span></button>
@@ -351,18 +377,157 @@ function StakingTerminal({ market }: { market: MarketData }) {
       </div>
       <aside className="rewards-panel">
         <div className="panel-heading compact"><div><small>MODULE 02</small><h2>REWARD CORE</h2></div><span className="pulse-label"><i /> IDLE</span></div>
-        <div className="token-orb" aria-label="SpaceX reward token display"><span className="orb-orbit"><i /></span><div><small>REWARD TOKEN</small><strong>SPACEX</strong><b>{formatUsdPrice(market.spacex?.priceUsd)}</b></div></div>
-        <div className="reward-balance"><small>CLAIMABLE REWARDS</small><strong>0.00 <span>SPACEX</span></strong><p>Rewards begin accruing after an eligible Space Broker is successfully deployed.</p></div>
+        <div className="token-orb" aria-label="Season 1 reward token display"><span className="orb-orbit"><i /></span><div><small>REWARD TOKEN</small><strong>TBA</strong><b>SEASON 1</b></div></div>
+        <div className="reward-balance"><small>CLAIMABLE REWARDS</small><strong>0.00 <span>TBA</span></strong><p>Rewards begin accruing after an eligible Space Broker is successfully deployed.</p></div>
         <dl className="reward-stats">
           <div><dt>ACTIVE CREW</dt><dd>0</dd></div><div><dt>BASE OUTPUT</dt><dd>PENDING</dd></div>
           <div><dt>MULTIPLIER</dt><dd>—</dd></div><div><dt>NEXT CLAIM</dt><dd>NOT ACTIVE</dd></div>
         </dl>
         <button className="claim-button" disabled>CLAIM TO WALLET</button>
-        <p className="token-warning">SpaceX rewards refer to a third-party crypto token. They are not SpaceX shares and do not imply affiliation with SpaceX.</p>
+        <p className="token-warning">The final Season 1 reward asset and allocation will be announced before staking opens.</p>
       </aside>
     </div>
   </section>;
 }
+
+function AbductionGame() {
+  const initialTargets = [
+    { id: 1, kind: "cow", x: 15, points: 100, speed: .18 }, { id: 2, kind: "human", x: 38, points: 200, speed: -.25 },
+    { id: 3, kind: "agent", x: 63, points: 400, speed: .32 }, { id: 4, kind: "file", x: 84, points: 750, speed: -.14 },
+  ];
+  const [score, setScore] = useState(0);
+  const [lives, setLives] = useState(3);
+  const [seconds, setSeconds] = useState(60);
+  const [detection, setDetection] = useState(0);
+  const [beam, setBeam] = useState(false);
+  const [ufoX, setUfoX] = useState(50);
+  const [targets, setTargets] = useState(initialTargets);
+  const [missiles, setMissiles] = useState<{ id: number; x: number; age: number }[]>([]);
+  const [searchX, setSearchX] = useState(8);
+  const [liftingId, setLiftingId] = useState<number | null>(null);
+  const [message, setMessage] = useState("SURVIVE 60 SECONDS. AVOID THE DEFENCES.");
+  const [gameOver, setGameOver] = useState(false);
+  const [escaped, setEscaped] = useState(false);
+  const invulnerableUntil = useRef(0);
+  const spawnTick = useRef(0);
+
+  const damage = useCallback((reason: string) => {
+    if (Date.now() < invulnerableUntil.current || gameOver || escaped) return;
+    invulnerableUntil.current = Date.now() + 1100;
+    setMessage(`${reason} — SHIELD LOST`);
+    setDetection(20);
+    setLives((value) => { const next = value - 1; if (next <= 0) setGameOver(true); return Math.max(0, next); });
+  }, [escaped, gameOver]);
+
+  const abduct = useCallback(() => {
+    if (beam || gameOver || escaped) return;
+    if (seconds === 0) {
+      if (Math.abs(ufoX - 50) <= 10) { setEscaped(true); setMessage("MISSION COMPLETE — UFO ESCAPED"); }
+      else setMessage("REACH THE GREEN ESCAPE PORTAL");
+      return;
+    }
+    setBeam(true);
+    const hit = [...targets].sort((a, b) => Math.abs(a.x - ufoX) - Math.abs(b.x - ufoX))[0];
+    if (!hit || Math.abs(hit.x - ufoX) > 9) {
+      setMessage("NO TARGET IN BEAM — REPOSITION UFO");
+      window.setTimeout(() => setBeam(false), 420);
+      return;
+    }
+    setLiftingId(hit.id); setScore((value) => value + hit.points);
+    setDetection((value) => Math.min(100, value + ({ cow: 10, human: 16, agent: 24, file: 32 }[hit.kind] || 12)));
+    setMessage(`${hit.kind.toUpperCase()} ACQUIRED +${hit.points}`);
+    window.setTimeout(() => {
+      setTargets((current) => current.map((item) => item.id === hit.id ? { ...item, id: Date.now(), x: 10 + Math.round(Math.random() * 80), speed: -item.speed } : item));
+      setLiftingId(null); setBeam(false);
+    }, 650);
+  }, [beam, escaped, gameOver, seconds, targets, ufoX]);
+
+  useEffect(() => {
+    if (gameOver || escaped || seconds === 0) return;
+    const timer = window.setInterval(() => setSeconds((value) => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [escaped, gameOver, seconds]);
+
+  useEffect(() => {
+    if (gameOver || escaped) return;
+    const tick = window.setInterval(() => {
+      const difficulty = 1 + (60 - seconds) / 45;
+      setTargets((current) => current.map((item) => ({ ...item, x: item.x + item.speed * difficulty < 5 ? 94 : item.x + item.speed * difficulty > 95 ? 6 : item.x + item.speed * difficulty })));
+      setSearchX((value) => value >= 92 ? 8 : value + .65 * difficulty);
+      spawnTick.current += 1;
+      if (seconds > 0 && spawnTick.current >= Math.max(13, 28 - Math.floor((60 - seconds) / 4))) {
+        spawnTick.current = 0;
+        setMissiles((current) => [...current.slice(-4), { id: Date.now(), x: 10 + Math.round(Math.random() * 80), age: 0 }]);
+      }
+      setMissiles((current) => current.map((missile) => ({ ...missile, age: missile.age + 1 })).filter((missile) => missile.age < 28));
+    }, 100);
+    return () => window.clearInterval(tick);
+  }, [escaped, gameOver, seconds]);
+
+  useEffect(() => {
+    if (gameOver || escaped || seconds === 0) return;
+    if (missiles.some((missile) => missile.age >= 19 && missile.age <= 22 && Math.abs(missile.x - ufoX) < 7)) damage("MISSILE IMPACT");
+    if (Math.abs(searchX - ufoX) < 7) setDetection((value) => Math.min(100, value + 3));
+    else setDetection((value) => Math.max(0, value - 2));
+  }, [damage, escaped, gameOver, missiles, searchX, seconds, ufoX]);
+
+  useEffect(() => { if (detection >= 100) damage("DETECTION MAXIMUM"); }, [damage, detection]);
+
+  const resetGame = () => {
+    setScore(0); setLives(3); setSeconds(60); setDetection(0); setBeam(false); setUfoX(50); setTargets(initialTargets);
+    setMissiles([]); setSearchX(8); setLiftingId(null); setMessage("SURVIVE 60 SECONDS. AVOID THE DEFENCES."); setGameOver(false); setEscaped(false); spawnTick.current = 0;
+  };
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.code === "Space") { event.preventDefault(); abduct(); }
+      if (event.key === "ArrowLeft") setUfoX((value) => Math.max(8, value - 6));
+      if (event.key === "ArrowRight") setUfoX((value) => Math.min(92, value + 6));
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [abduct]);
+
+  const spotted = Math.abs(searchX - ufoX) < 7 && seconds > 0 && !gameOver && !escaped;
+
+  return <div className="game-shell">
+    <div className="game-hud"><span>SCORE {String(score).padStart(6, "0")}</span><span>LIVES {"◆".repeat(lives)}{"◇".repeat(3 - lives)}</span><span>{seconds > 0 ? `ESCAPE ${seconds}s` : "PORTAL OPEN"}</span></div>
+    <div className="game-sky">
+      <div className="pixel-star s1" /><div className="pixel-star s2" /><div className="pixel-star s3" />
+      <div className={`ufo ${Date.now() < invulnerableUntil.current ? "damaged" : ""}`} style={{ left: `${ufoX}%` }}><span /><i /></div>
+      <div className={`beam ${beam ? "active" : ""}`} style={{ left: `${ufoX}%` }} />
+      <div className={`searchlight ${spotted ? "spotted" : ""}`} style={{ left: `${searchX}%` }}><i /></div>
+      {spotted && <div className="turret-fire" style={{ left: `${searchX}%`, transform: `translateX(-50%) rotate(${(ufoX - searchX) * .55}deg)` }}><i /><i /><i /></div>}
+      {missiles.map((missile) => missile.age < 8
+        ? <div className="strike-warning" style={{ left: `${missile.x}%` }} key={missile.id}><span>!</span></div>
+        : <div className="missile-rise" style={{ left: `${missile.x}%`, top: `${300 - (missile.age - 8) * 18}px` }} key={missile.id}><i /></div>)}
+      {targets.map((item) => <div key={item.id} className={`game-target target-${item.kind} ${liftingId === item.id ? "lift" : ""}`} style={{ left: `${item.x}%` }}><span /><b /><i /></div>)}
+      {seconds === 0 && !gameOver && <div className="escape-portal" />}
+      <div className="horizon"><i /><i /><i /><i /><i /></div>
+      {(gameOver || escaped) && (
+        <div className={`game-result ${escaped ? "success" : ""}`}>
+          <strong>{escaped ? "MISSION COMPLETE" : "UFO DOWN"}</strong>
+          <small>{escaped ? "PORTAL REACHED" : "THE SIGNAL FOUND YOU"}</small>
+          <span>FINAL SCORE {score}</span>
+          <div className="game-result-actions">
+            <button onClick={resetGame}>PLAY AGAIN</button>
+            <button className="share-score" onClick={() => {
+              const text = `I scored ${score} points in Abduction Brokers by @spacebrokers_ 👽🛸 Can you beat my score?`;
+              const url = `${window.location.origin}${window.location.pathname}#abduction`;
+              window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener,noreferrer");
+            }}>SHARE SCORE ON X ↗</button>
+          </div>
+        </div>
+      )}
+    </div>
+    <div className="game-controls">
+      <button onClick={() => setUfoX((v) => Math.max(8, v - 7))} aria-label="Move UFO left">◀</button>
+      <button className="abduct" onClick={abduct}>{seconds === 0 ? "ESCAPE" : "ABDUCT"}</button>
+      <button onClick={() => setUfoX((v) => Math.min(92, v + 7))} aria-label="Move UFO right">▶</button>
+    </div><div className={`detection-row ${spotted ? "spotted" : ""}`}><span>{spotted ? "SPOTTED — MOVE!" : "DETECTION"}</span><div><i style={{ width: `${detection}%` }} /></div><b>{detection}%</b></div><div className="target-key"><span>COW 100</span><span>HUMAN 200</span><span>AGENT 400</span><span>FILE 750</span></div><p className="game-message">{message}</p>
+  </div>;
+}
+
 
 function OpenSeaFloor({ market }: { market: MarketData }) {
   const floorPrice = market.floor?.currency === "ETH" ? market.floor.display : "0.001 ETH";
@@ -378,35 +543,34 @@ function OpenSeaFloor({ market }: { market: MarketData }) {
   </div>;
 }
 
-function MissionBrief({ market }: { market: MarketData }) {
-  return <section className="brief-section" id="mission-brief">
+function CollectionBrief({ market }: { market: MarketData }) {
+  return <section className="brief-section" id="collection">
     <div className="brief-visual"><OpenSeaFloor market={market} /></div>
-    <div className="brief-copy">
-      <small>WHY STAKE?</small><h2>PUT YOUR BROKERS<br /><span>ON ACTIVE DUTY.</span></h2>
-      <p>Staking turns your Space Brokers into working crew. While deployed, eligible NFTs accrue SpaceX token rewards that can be claimed to the connected wallet.</p>
-      <div className="brief-points">
-        <article><b>BASE ACCRUAL</b><p>Every eligible staked broker starts from the published mission rate.</p><span>01</span></article>
-        <article><b>RARITY SIGNAL</b><p>Rarity-based multipliers can reward higher-tier crew once the final table is confirmed.</p><span>02</span></article>
-        <article><b>FLEET POWER</b><p>Holding and deploying more brokers can unlock a larger fleet multiplier.</p><span>03</span></article>
+    <div className="brief-copy reward-guide">
+      <small>STAKING // REWARD POWER</small><h2>RARITY. FLEET.<br /><span>MISSION.</span></h2>
+      <p>Your ongoing reward power is calculated from rarity × active fleet size. Complete your chosen mission to unlock an additional duration bonus.</p>
+      <div className="reward-rules">
+        <article className="reward-rule">
+          <h3><span aria-hidden="true">👽</span> RARITY</h3>
+          <dl><div><dt>Designated 1/1s</dt><dd>5×</dd></div><div><dt>Rank #11–199</dt><dd>3×</dd></div><div><dt>Rank #200–800</dt><dd>2×</dd></div><div><dt>Rank #801–1500</dt><dd>1.5×</dd></div><div><dt>Rank #1501–2222</dt><dd>1×</dd></div></dl>
+        </article>
+        <article className="reward-rule">
+          <h3><span aria-hidden="true">🛸</span> ACTIVE FLEET</h3>
+          <dl><div><dt>1–10 deployed</dt><dd>1×</dd></div><div><dt>11–30 deployed</dt><dd>1.5×</dd></div><div><dt>31–60 deployed</dt><dd>2×</dd></div><div><dt>61+ deployed</dt><dd>3×</dd></div></dl>
+        </article>
+        <article className="reward-rule mission-rule">
+          <h3><span aria-hidden="true">⏳</span> MISSION BONUS</h3>
+          <dl><div><dt>30 days</dt><dd>+10%</dd></div><div><dt>60 days</dt><dd>+25%</dd></div><div><dt>90 days</dt><dd>+50%</dd></div></dl>
+        </article>
       </div>
+      <p className="reward-footnote"><strong>BASE REWARDS ACCRUE WEEKLY.</strong> NFTs remain in your wallet during soft staking. If one is sold or transferred, it stops earning and its unfinished mission bonus is lost.</p>
     </div>
-  </section>;
-}
-
-function ProtocolStatus() {
-  return <section className="status-section" id="protocol-status">
-    <header className="section-header"><div><small>PRE-LAUNCH DISCLOSURE</small><h2>NO BLACK BOXES.</h2></div><p>The dock stays in pre-flight mode until every critical detail is ready for holders to verify.</p></header>
-    <div className="status-grid">
-      <article className="status-card ready"><div><span>INTERFACE</span><b>ONLINE</b></div><h3>Staking command centre</h3><p>Wallet linking, reward readouts and the complete holder journey are in position.</p></article>
-      <article className="status-card ready"><div><span>COLLECTION</span><b>LINKED</b></div><h3>Space Brokers contract</h3><p>The wallet scanner now reads owned NFTs from {formatWallet(collectionContract)} on Robinhood Chain.</p></article>
-      <article className="status-card pending"><div><span>STAKING + ECONOMY</span><b>CALIBRATING</b></div><h3>Deployment and reward rules</h3><p>The separate staking contract, base emissions, rarity bonuses and fleet tiers will be published together.</p></article>
-    </div>
-    <div className="safety-strip"><strong>MISSION RULE</strong><p>Never sign through an unannounced link. The official staking address will be posted on this site, X and Discord.</p><span>VERIFICATION REQUIRED</span></div>
   </section>;
 }
 
 export default function Home() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeArticle, setActiveArticle] = useState<Article | null>(null);
   const [market, setMarket] = useState<MarketData>({ floor: { display: "0.001 ETH", value: 0.001, currency: "ETH" }, listings: [], spacex: null });
 
   useEffect(() => {
@@ -435,20 +599,75 @@ export default function Home() {
     <header className="site-header">
       <Brand />
       <nav className={mobileOpen ? "open" : ""} aria-label="Primary navigation">
-        <a href="#staking" onClick={() => setMobileOpen(false)}>STAKING DOCK</a><a href="#mission-brief" onClick={() => setMobileOpen(false)}>MISSION BRIEF</a><a href="#protocol-status" onClick={() => setMobileOpen(false)}>SYSTEM STATUS</a>
+        <a href="#mission" onClick={() => setMobileOpen(false)}>THE MISSION</a>
+        <a href="#signals" onClick={() => setMobileOpen(false)}>SIGNAL FEED</a>
+        <a href="#classified" onClick={() => setMobileOpen(false)}>CLASSIFIED</a>
+        <a href="#abduction" onClick={() => setMobileOpen(false)}>ABDUCTION</a>
+        <a href="#staking" onClick={() => setMobileOpen(false)}>STAKING</a>
       </nav>
       <div className="header-links"><a href={links.x} target="_blank" rel="noreferrer">X ↗</a><a href={links.discord} target="_blank" rel="noreferrer">DISCORD ↗</a></div>
       <button className="menu-button" aria-label="Toggle navigation" aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>{mobileOpen ? "×" : "☰"}</button>
     </header>
+
     <MarketTicker market={market} />
-    <section className="cockpit-hero" id="staking">
+
+    <section className="community-hero" id="mission">
       <div className="starfield" aria-hidden="true" />
-      <p className="staking-intro"><strong>Staking is currently under construction.</strong> The terminal below is a preview of the Mothership staking experience; wallet connection, staking and claims will activate with Season 1.</p>
+      <div className="community-copy">
+        <small>PUBLIC TRANSMISSION // ACCESS GRANTED</small>
+        <h1>SPACE HAS ENTERED<br /><span>THE PORTFOLIO.</span></h1>
+        <p>Space Brokers is a classified community for alien believers, sceptics, night-sky watchers and holders—exploring encounters, theories, hidden files and humanity’s future beyond Earth.</p>
+        <div className="community-actions">
+          <a className="primary-link" href={links.discord} target="_blank" rel="noreferrer">ENTER THE COMMUNITY ↗</a>
+          <a href={links.opensea} target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a>
+        </div>
+        <div className="community-modules">
+          <span><b>01</b> FOLLOW THE SIGNAL</span><span><b>02</b> OPEN THE FILES</span><span><b>03</b> FLY THE UFO</span>
+        </div>
+      </div>
+      <div className="community-visual">
+        <img src="/space-brokers-collection.gif" alt="Animated selection of Space Brokers agents" />
+        <div className="scan-beam" aria-hidden="true" />
+        <div className="visual-readout"><small>AGENT ARCHIVE</small><b>MULTIPLE IDENTITIES DETECTED</b></div>
+      </div>
+    </section>
+
+    <CollectionBrief market={market} />
+
+    <section className="intel-section signals-section" id="signals">
+      <header className="section-header"><div><small>03 // SIGNAL FEED</small><h2>LATEST FROM <span>ORBIT.</span></h2></div><p>Verified developments from the companies and technologies pushing humanity further into space.</p></header>
+      <div className="signal-list">{signals.map((signal, index) => <button className="signal-entry" key={signal.title} onClick={() => setActiveArticle({ eyebrow: `${signal.tag} // ${signal.date}`, title: signal.title, body: signal.body, sourceLabel: signal.sourceLabel, sourceUrl: signal.sourceUrl })}>
+        <span className="signal-number">0{index + 1}</span><span className="signal-copy"><small>{signal.tag} · {signal.date}</small><b>{signal.title}</b><p>{signal.copy}</p></span><i>↗</i>
+      </button>)}</div>
+    </section>
+
+    <section className="intel-section classified-section" id="classified">
+      <div className="classified-visual"><img src="/classified-file.png" alt="Pixel classified alien file" /><span>AUTHORISED PERSONNEL ONLY</span></div>
+      <div className="classified-copy">
+        <small>04 // CLASSIFIED ARCHIVE</small><h2>THE TRUTH IS<br /><span>IN THE FILES.</span></h2>
+        <p>Documented encounters, witness accounts and theories—clearly separated by evidence level. Explore the strange without pretending every claim is fact.</p>
+        <div className="file-list">{files.map((file) => <button key={file.code} onClick={() => setActiveArticle({ eyebrow: `${file.code} // ${file.status}`, title: file.title, body: file.body, sourceLabel: file.sourceLabel, sourceUrl: file.sourceUrl })}>
+          <span><small>{file.code}</small><em>{file.status}</em></span><b>{file.title}</b><i>→</i>
+        </button>)}</div>
+      </div>
+    </section>
+
+    <section className="intel-section abduction-section" id="abduction">
+      <header className="section-header"><div><small>05 // ARCADE MISSION</small><h2>ABDUCTION <span>BROKERS.</span></h2></div><p>Move the UFO, abduct targets, dodge missiles and searchlights, then reach the portal before your shields are gone.</p></header>
+      <AbductionGame />
+    </section>
+
+    <section className="cockpit-hero staking-zone" id="staking">
+      <div className="starfield" aria-hidden="true" />
+      <header className="section-header staking-heading"><div><small>06 // MOTHERSHIP UTILITY</small><h2>DEPLOY YOUR <span>CREW.</span></h2></div><p>Rarity, active fleet size and mission duration will determine reward power when Season 1 opens.</p></header>
+      <p className="staking-intro"><strong>Staking is currently under construction.</strong> This terminal is a preview; wallet connection, staking and claims are not live yet.</p>
       <StakingTerminal market={market} />
     </section>
-    <MissionBrief market={market} /><ProtocolStatus />
-    <section className="final-call"><div><small>HOLDER TRANSMISSION</small><h2>THE CREW IS MINTED.<br /><span>NOW PUT THEM TO WORK.</span></h2><p>Follow the official channels for the verified contract, emissions table and activation time.</p></div><div className="final-actions"><a className="bright-link" href={links.discord} target="_blank" rel="noreferrer">JOIN MISSION CONTROL ↗</a><a href={links.opensea} target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a></div></section>
-    <footer><Brand /><p>Space Brokers is an independent NFT project. SpaceX token rewards are not shares or financial advice.</p><div><a href={links.opensea} target="_blank" rel="noreferrer">OPENSEA ↗</a><a href={links.x} target="_blank" rel="noreferrer">X ↗</a><a href={links.discord} target="_blank" rel="noreferrer">DISCORD ↗</a></div></footer>
+
+    <section className="final-call"><div><small>HOLDER TRANSMISSION</small><h2>LOOK UP.<br /><span>QUESTION EVERYTHING.</span></h2><p>The Mothership is more than staking. Join the alien conversation, open the files and help decide what we investigate next.</p></div><div className="final-actions"><a className="bright-link" href={links.discord} target="_blank" rel="noreferrer">JOIN MISSION CONTROL ↗</a><a href={links.opensea} target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a></div></section>
+
+    <footer><Brand /><p>Built for those who still look up. Space-market content is not financial advice.</p><div><a href={links.opensea} target="_blank" rel="noreferrer">OPENSEA ↗</a><a href={links.x} target="_blank" rel="noreferrer">X ↗</a><a href={links.discord} target="_blank" rel="noreferrer">DISCORD ↗</a></div></footer>
     <AudioToggle />
+    {activeArticle && <ArticleModal article={activeArticle} onClose={() => setActiveArticle(null)} />}
   </main>;
 }

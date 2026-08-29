@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Space Brokers Staking",
-  description: "Deploy your Space Brokers crew and earn SpaceX token rewards from the Mothership staking terminal.",
-  openGraph: { title: "Space Brokers Staking", description: "Deploy your crew. Earn SpaceX.", type: "website", images: ["/og.png"] },
-  twitter: { card: "summary_large_image", title: "Space Brokers Staking", description: "Deploy your crew. Earn SpaceX.", images: ["/og.png"] },
+  title: "Space Brokers",
+  description: "A classified alien community exploring encounters, theories, the space economy and the mysteries beyond Earth.",
+  openGraph: { title: "Space Brokers", description: "The truth is in the files.", type: "website", images: ["/og.png"] },
+  twitter: { card: "summary_large_image", title: "Space Brokers", description: "The truth is in the files.", images: ["/og.png"] },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
