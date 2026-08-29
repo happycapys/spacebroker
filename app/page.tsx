@@ -159,7 +159,7 @@ function AudioToggle() {
 function StakingTerminal({ market }: { market: MarketData }) {
   const [wallet, setWallet] = useState("");
   const [chain, setChain] = useState("");
-  const [message, setMessage] = useState("Connect your wallet to begin the crew scan.");
+  const [message, setMessage] = useState("Staking is under construction. Wallet connection will open when Season 1 launches.");
   const [connecting, setConnecting] = useState(false);
   const [mode, setMode] = useState<"stake" | "unstake">("stake");
   const [ownedNfts, setOwnedNfts] = useState<OwnedNft[]>([]);
@@ -299,15 +299,20 @@ function StakingTerminal({ market }: { market: MarketData }) {
     } finally { setConnecting(false); }
   };
 
-  return <section className="terminal-shell" aria-label="Space Brokers staking terminal">
-    <div className="terminal-topline"><span><i /> ORBITAL STAKING TERMINAL</span><b>STATUS // PRE-FLIGHT</b></div>
+  return <section className="terminal-shell is-building" aria-label="Space Brokers staking terminal preview" aria-disabled="true">
+    <div className="terminal-topline"><span><i /> ORBITAL STAKING TERMINAL</span><b>STATUS // UNDER CONSTRUCTION</b></div>
+    <div className="construction-notice" role="status">
+      <span aria-hidden="true">⚠</span>
+      <div><strong>STAKING IS UNDER CONSTRUCTION</strong><p>This terminal is a preview only. Wallet connection, staking and claims are not live yet. Season 1 launch details will be announced on X and Discord.</p></div>
+      <b>COMING SOON</b>
+    </div>
     <div className="terminal-grid">
       <div className="dock-panel">
         <div className="panel-heading">
           <div><small>MODULE 01</small><h2>CREW DEPLOYMENT</h2></div>
           <div className="mode-switch" aria-label="Staking action">
-            <button className={mode === "stake" ? "active" : ""} onClick={() => { setMode("stake"); setSelected([]); }}>STAKE</button>
-            <button className={mode === "unstake" ? "active" : ""} onClick={() => { setMode("unstake"); setSelected([]); }}>UNSTAKE</button>
+            <button className={mode === "stake" ? "active" : ""} disabled onClick={() => { setMode("stake"); setSelected([]); }}>STAKE</button>
+            <button className={mode === "unstake" ? "active" : ""} disabled onClick={() => { setMode("unstake"); setSelected([]); }}>UNSTAKE</button>
           </div>
         </div>
         <div className={`crew-scanner ${wallet ? "linked" : ""}`}>
@@ -340,7 +345,7 @@ function StakingTerminal({ market }: { market: MarketData }) {
           <span><small>EST. RATE</small><strong>— SPACEX / DAY</strong></span>
         </div>
         {!wallet
-          ? <button className="primary-action" onClick={connect} disabled={connecting}>{connecting ? "ESTABLISHING LINK…" : "CONNECT WALLET"}<span>→</span></button>
+          ? <button className="primary-action calibrated" onClick={connect} disabled>{connecting ? "ESTABLISHING LINK…" : "STAKING UNDER CONSTRUCTION"}<span>⌁</span></button>
           : <button className="primary-action calibrated" disabled>{selected.length ? `${selected.length} SELECTED — STAKING CONTRACT REQUIRED` : "SELECT CREW TO PREPARE STAKING"}<span>⌁</span></button>}
         <p className="action-note">No transaction can be submitted until the verified staking contract, reward rate and eligible network are published.</p>
       </div>
@@ -438,7 +443,7 @@ export default function Home() {
     <MarketTicker market={market} />
     <section className="cockpit-hero" id="staking">
       <div className="starfield" aria-hidden="true" />
-      <p className="staking-intro">Welcome aboard the Mothership. Stake eligible Space Brokers, build your fleet multiplier and claim SpaceX token rewards from one onboard command centre.</p>
+      <p className="staking-intro"><strong>Staking is currently under construction.</strong> The terminal below is a preview of the Mothership staking experience; wallet connection, staking and claims will activate with Season 1.</p>
       <StakingTerminal market={market} />
     </section>
     <MissionBrief market={market} /><ProtocolStatus />
