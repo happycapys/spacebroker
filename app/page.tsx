@@ -625,10 +625,8 @@ export default function Home() {
           <span><b>01</b> FOLLOW THE SIGNAL</span><span><b>02</b> OPEN THE FILES</span><span><b>03</b> FLY THE UFO</span>
         </div>
       </div>
-      <div className="community-visual">
-        <img src="/space-brokers-collection.gif" alt="Animated selection of Space Brokers agents" />
-        <div className="scan-beam" aria-hidden="true" />
-        <div className="visual-readout"><small>AGENT ARCHIVE</small><b>MULTIPLE IDENTITIES DETECTED</b></div>
+      <div className="community-visual hero-command-art">
+        <img src="/space-brokers-command-room-clean.png" alt="Space Brokers command room with alien agents, space markets and a view into orbit" />
       </div>
     </section>
 
