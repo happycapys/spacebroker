@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Space Brokers — Season 1 Snapshot</title>
+  <style>
+    :root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #040800; color: #ecffd1; display: grid; place-items: center; padding: 24px; }
+    main { width: min(720px, 100%); border: 1px solid #8fbd00; padding: clamp(24px, 5vw, 48px); background: #071000; box-shadow: 0 0 48px rgba(204,255,0,.08); }
+    .eyebrow { color: #ccff00; letter-spacing: .16em; font-size: 12px; }
+    h1 { margin: 18px 0 12px; font: 800 clamp(30px, 6vw, 58px)/.95 Arial, sans-serif; text-transform: uppercase; }
+    p { color: #bfd09f; line-height: 1.6; }
+    button, a.download { appearance: none; display: inline-block; border: 1px solid #ccff00; background: #ccff00; color: #071000; padding: 14px 18px; font: 800 13px/1 ui-monospace, monospace; text-transform: uppercase; cursor: pointer; text-decoration: none; margin: 8px 8px 0 0; }
+    button:disabled { opacity: .45; cursor: wait; }
+    a.download { background: transparent; color: #ccff00; }
+    progress { width: 100%; height: 18px; accent-color: #ccff00; margin: 18px 0 8px; }
+    #status { min-height: 48px; color: #ccff00; }
+    #downloads[hidden] { display: none; }
+    code { color: #ccff00; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">CLASSIFIED ADMIN TOOL // DO NOT CLOSE WHILE RUNNING</div>
+    <h1>Season 1 rarity snapshot</h1>
+    <p>This downloads all 2,222 current OpenSea ranks, applies the eleven designated 1/1 overrides, validates the collection, and creates the frozen Season 1 files.</p>
+    <button id="generate">Generate snapshot</button>
+    <progress id="progress" max="2222" value="0"></progress>
+    <p id="status">Ready. Generation can take several minutes.</p>
+    <div id="downloads" hidden>
+      <a id="csv" class="download" download="space-brokers-season-1-rarity.csv">Download CSV</a>
+      <a id="manifest" class="download" download="space-brokers-season-1-manifest.json">Download manifest</a>
+      <p>Attach both downloaded files in ChatGPT so they can be independently checked before anything is loaded on-chain.</p>
+    </div>
+  </main>
+  <script>
+    const oneOfOnes = new Set([608, 624, 665, 695, 1050, 1452, 1527, 1701, 1728, 2194, 2208]);
+    const button = document.querySelector("#generate");
+    const progress = document.querySelector("#progress");
+    const status = document.querySelector("#status");
+    const downloads = document.querySelector("#downloads");
+    const pause = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+    const request = async (url, attempts = 5) => {
+      let lastError;
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+          const response = await fetch(url, { cache: "no-store" });
+          const payload = await response.json();
+          if (response.ok) return payload;
+          lastError = new Error(payload.error || `Request failed (${response.status})`);
+        } catch (error) { lastError = error; }
+        status.textContent = `OpenSea is rate-limiting the export. Retrying automatically (${attempt}/${attempts})…`;
+        await pause(800 * attempt);
+      }
+      throw lastError;
+    };
+
+    const tierFor = ({ tokenId, rank }) => {
+      if (oneOfOnes.has(tokenId)) return { tier: "Designated 1/1", multiplier: "5", multiplierBps: 50000 };
+      if (rank >= 1 && rank <= 199) return { tier: "Elite", multiplier: "3", multiplierBps: 30000 };
+      if (rank <= 800) return { tier: "Epic", multiplier: "2", multiplierBps: 20000 };
+      if (rank <= 1500) return { tier: "Advanced", multiplier: "1.5", multiplierBps: 15000 };
+      if (rank <= 2222) return { tier: "Standard", multiplier: "1", multiplierBps: 10000 };
+      throw new Error(`Token ${tokenId} has invalid rank ${rank}`);
+    };
+
+    const escapeCsv = (value) => `"${String(value).replaceAll('"', '""')}"`;
+    const hashText = async (text) => {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+      return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    };
+    const linkBlob = (link, value, type) => { link.href = URL.createObjectURL(new Blob([value], { type })); };
+
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      downloads.hidden = true;
+      progress.value = 0;
+      try {
+        const byToken = new Map();
+        let cursor = "";
+        let page = 0;
+        do {
+          const query = cursor ? `?mode=list&cursor=${encodeURIComponent(cursor)}` : "?mode=list";
+          const payload = await request(`/.netlify/functions/rarity-snapshot${query}`);
+          for (const row of payload.rows || []) byToken.set(row.tokenId, row);
+          cursor = payload.next || "";
+          page += 1;
+          progress.value = Math.min(byToken.size, 2222);
+          status.textContent = `Reading collection page ${page} — ${byToken.size}/2,222 NFTs found…`;
+        } while (cursor);
+
+        if (byToken.size !== 2222) throw new Error(`OpenSea returned ${byToken.size} unique NFTs instead of 2,222.`);
+        const expectedIds = Array.from({ length: 2222 }, (_, index) => index + 1);
+        const missingIds = expectedIds.filter((id) => !byToken.has(id));
+        if (missingIds.length) throw new Error(`Missing token IDs: ${missingIds.slice(0, 20).join(", ")}`);
+
+        let missingRanks = expectedIds.filter((id) => !Number.isInteger(byToken.get(id).rank));
+        for (let offset = 0; offset < missingRanks.length; offset += 12) {
+          const ids = missingRanks.slice(offset, offset + 12);
+          status.textContent = `Reading individual rarity records — ${Math.min(offset + 12, missingRanks.length)}/${missingRanks.length}…`;
+          const payload = await request(`/.netlify/functions/rarity-snapshot?mode=details&ids=${ids.join(",")}`);
+          for (const row of payload.rows || []) byToken.set(row.tokenId, row);
+          await pause(150);
+        }
+
+        missingRanks = expectedIds.filter((id) => !Number.isInteger(byToken.get(id).rank));
+        if (missingRanks.length) throw new Error(`Ranks remain unavailable for: ${missingRanks.slice(0, 20).join(", ")}`);
+
+        const rows = expectedIds.map((tokenId) => {
+          const source = byToken.get(tokenId);
+          return { ...source, ...tierFor(source), designatedOneOfOne: oneOfOnes.has(tokenId) };
+        });
+        const header = ["token_id", "opensea_rank", "designated_one_of_one", "tier", "multiplier", "multiplier_bps"];
+        const csv = `${header.join(",")}\n${rows.map((row) => [
+          row.tokenId, row.rank, row.designatedOneOfOne, row.tier, row.multiplier, row.multiplierBps,
+        ].map(escapeCsv).join(",")).join("\n")}\n`;
+        const sha256 = await hashText(csv);
+        const tierCounts = Object.fromEntries([...new Set(rows.map((row) => row.tier))].map((tier) => [tier, rows.filter((row) => row.tier === tier).length]));
+        const manifest = `${JSON.stringify({
+          collection: "Space Brokers",
+          contract: "0xea35558af012ab6e75f72b7ec946970982587af6",
+          seasonId: 1,
+          generatedAt: new Date().toISOString(),
+          source: "OpenSea OpenRarity API",
+          tokenCount: rows.length,
+          designatedOneOfOneIds: [...oneOfOnes].sort((a, b) => a - b),
+          tierCounts,
+          csvSha256: sha256,
+        }, null, 2)}\n`;
+
+        linkBlob(document.querySelector("#csv"), csv, "text/csv;charset=utf-8");
+        linkBlob(document.querySelector("#manifest"), manifest, "application/json;charset=utf-8");
+        progress.value = 2222;
+        status.innerHTML = `Snapshot complete: 2,222 NFTs verified.<br>CSV SHA-256: <code>${sha256}</code>`;
+        downloads.hidden = false;
+      } catch (error) {
+        status.textContent = `Snapshot stopped: ${error.message} Press Generate Snapshot to retry.`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

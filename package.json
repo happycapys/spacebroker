@@ -9,13 +9,17 @@
     "dev": "next dev",
     "build": "next build --webpack",
     "start": "next start",
-    "lint": "eslint . --ignore-pattern .next"
+    "lint": "eslint . --ignore-pattern .next",
+    "test:rewards": "node --test scripts/*.test.mjs",
+    "calculate:rewards": "node scripts/calculate-season-rewards.mjs",
+    "build:reward-tree": "node scripts/build-reward-tree.mjs"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",
     "next": "16.2.6",
     "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react-dom": "19.2.6",
+    "viem": "^2.37.9"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",

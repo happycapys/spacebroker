@@ -2,6 +2,8 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { decodeFunctionResult, encodeFunctionData, formatUnits, parseAbi } from "viem";
+import Link from "next/link";
 
 type EthereumProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
@@ -21,9 +23,37 @@ const links = {
 };
 
 const collectionContract = "0xea35558af012ab6e75f72b7ec946970982587af6";
+const mothershipContract = "0x137bF98F59C8DC04b3cEBDb44E3Ba18dA8A52222";
 const spacexContract = "0x68fa48b1c2fe52b3d776e1953e0e782b5044ce28";
 const blockscoutApi = "https://robinhoodchain.blockscout.com/api/v2";
 const robinhoodRpc = "https://rpc.mainnet.chain.robinhood.com";
+const robinhoodChainId = "0x1237";
+const missionRegistryContract = process.env.NEXT_PUBLIC_MISSION_REGISTRY_CONTRACT ?? "";
+const rewardDistributorContract = process.env.NEXT_PUBLIC_REWARD_DISTRIBUTOR_CONTRACT ?? "";
+const stakingContractsLive = /^0x[a-fA-F0-9]{40}$/.test(missionRegistryContract)
+  && /^0x[a-fA-F0-9]{40}$/.test(rewardDistributorContract);
+
+const missionRegistryAbi = parseAbi([
+  "function startMissions(uint256[] tokenIds, uint8 durationDays)",
+  "function completeMissions(uint256[] tokenIds)",
+  "function exitMissions(uint256[] tokenIds)",
+  "function missions(uint256 tokenId) view returns (address staker, uint64 startedAt, uint64 targetEndAt, uint64 endedAt, uint8 durationDays, bool completed, bool active)",
+]);
+const rewardDistributorAbi = parseAbi([
+  "function claimed(address account) view returns (uint256)",
+  "function claim(uint256 cumulativeAmount, bytes32[] proof)",
+]);
+
+type RewardClaim = { cumulativeAmount: string; proof: `0x${string}`[] };
+type MissionState = {
+  staker: string;
+  startedAt: bigint;
+  targetEndAt: bigint;
+  endedAt: bigint;
+  durationDays: number;
+  completed: boolean;
+  active: boolean;
+};
 
 type OwnedNft = { id: string; name: string; image: string; url?: string };
 type FloorListing = { id: string; price: string; image: string; url: string };
@@ -131,9 +161,9 @@ const formatUsdPrice = (value?: number | null) => value === null || value === un
   : `$${value.toLocaleString(undefined, { maximumSignificantDigits: 6, maximumFractionDigits: 12 })}`;
 
 function Brand() {
-  return <a className="brand" href="/" aria-label="Space Brokers home">
+  return <Link className="brand" href="/" aria-label="Space Brokers home">
     <img src="/space-brokers-logo-neon.png" alt="Space Brokers" />
-  </a>;
+  </Link>;
 }
 
 function NftArtwork({ nft, className = "" }: { nft: OwnedNft; className?: string }) {
@@ -153,7 +183,7 @@ function MarketTicker({ market }: { market: MarketData }) {
     { label: "SPACEX 24H CHANGE", value: change === null || change === undefined ? "SYNCING" : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`, tone: change !== null && change !== undefined && change < 0 ? "down" : "up" },
     { label: "CREW SUPPLY", value: "2,222" },
     { label: "NETWORK", value: "ROBINHOOD CHAIN" },
-    { label: "SEASON 1 REWARD", value: "TO BE ANNOUNCED" },
+    { label: "SEASON 1 REWARD", value: "MOTHERSHIP" },
   ];
   const loop = [...items, ...items];
   return <div className="market-ticker" aria-label="Live Space Brokers market telemetry"><div className="ticker-track">{loop.map((item, index) => {
@@ -182,20 +212,28 @@ function AudioToggle() {
   </div>;
 }
 
-function StakingTerminal({ market }: { market: MarketData }) {
+function StakingTerminal() {
   const [wallet, setWallet] = useState("");
   const [chain, setChain] = useState("");
-  const [message, setMessage] = useState("Staking is under construction. Wallet connection will open when Season 1 launches.");
+  const [message, setMessage] = useState(stakingContractsLive
+    ? "Connect your wallet to load your Space Brokers and prepare a mission."
+    : "The contracts are being prepared and independently checked before Season 1 opens.");
   const [connecting, setConnecting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [claiming, setClaiming] = useState(false);
+  const [rewardClaim, setRewardClaim] = useState<RewardClaim | null>(null);
+  const [alreadyClaimed, setAlreadyClaimed] = useState(BigInt(0));
   const [mode, setMode] = useState<"stake" | "unstake">("stake");
+  const [durationDays, setDurationDays] = useState<30 | 60 | 90>(30);
   const [ownedNfts, setOwnedNfts] = useState<OwnedNft[]>([]);
+  const [missionStates, setMissionStates] = useState<Record<string, MissionState>>({});
   const [selected, setSelected] = useState<string[]>([]);
   const [scanning, setScanning] = useState(false);
 
   const networkLabel = useMemo(() => {
     if (!chain) return "NOT DETECTED";
     if (chain === "0x1") return "ETHEREUM";
-    if (chain === "0x1237") return "ROBINHOOD CHAIN";
+    if (chain === robinhoodChainId) return "ROBINHOOD CHAIN";
     if (chain === "0xb626") return "ROBINHOOD TESTNET";
     return `CHAIN ${Number.parseInt(chain, 16)}`;
   }, [chain]);
@@ -204,7 +242,13 @@ function StakingTerminal({ market }: { market: MarketData }) {
     const updateAccounts = (accounts: string[]) => {
       const next = accounts[0] ?? "";
       setWallet(next);
-      if (!next) { setOwnedNfts([]); setSelected([]); }
+      if (!next) {
+        setOwnedNfts([]);
+        setSelected([]);
+        setRewardClaim(null);
+        setAlreadyClaimed(BigInt(0));
+        setMissionStates({});
+      }
       setMessage(next ? "Wallet link established. Crew indexing activates with the staking contract." : "Wallet disconnected. Reconnect to access the dock.");
     };
     window.ethereum?.on?.("accountsChanged", updateAccounts);
@@ -300,12 +344,82 @@ function StakingTerminal({ market }: { market: MarketData }) {
     return () => { cancelled = true; };
   }, [wallet, chain]);
 
+  useEffect(() => {
+    if (!wallet || !window.ethereum || !stakingContractsLive) return;
+    let cancelled = false;
+    const loadClaim = async () => {
+      try {
+        const [rewardsResponse, claimedResult] = await Promise.all([
+          fetch(`/season-1-rewards.json?t=${Date.now()}`, { cache: "no-store" }),
+          window.ethereum!.request({
+            method: "eth_call",
+            params: [{
+              to: rewardDistributorContract,
+              data: encodeFunctionData({ abi: rewardDistributorAbi, functionName: "claimed", args: [wallet as `0x${string}`] }),
+            }, "latest"],
+          }) as Promise<`0x${string}`>,
+        ]);
+        const claimed = decodeFunctionResult({ abi: rewardDistributorAbi, functionName: "claimed", data: claimedResult });
+        const rewards = rewardsResponse.ok
+          ? await rewardsResponse.json() as { claims?: Record<string, RewardClaim> }
+          : null;
+        if (cancelled) return;
+        setAlreadyClaimed(claimed);
+        setRewardClaim(rewards?.claims?.[wallet.toLowerCase()] ?? null);
+      } catch {
+        if (!cancelled) {
+          setAlreadyClaimed(BigInt(0));
+          setRewardClaim(null);
+        }
+      }
+    };
+    loadClaim();
+    return () => { cancelled = true; };
+  }, [wallet]);
+
+  const ownedTokenKey = ownedNfts.map((nft) => nft.id).join(",");
+  useEffect(() => {
+    if (!wallet || !window.ethereum || !stakingContractsLive || !ownedNfts.length) return;
+    let cancelled = false;
+    const loadMissions = async () => {
+      const next: Record<string, MissionState> = {};
+      for (let start = 0; start < ownedNfts.length; start += 15) {
+        const batch = await Promise.all(ownedNfts.slice(start, start + 15).map(async (nft) => {
+          try {
+            const data = encodeFunctionData({ abi: missionRegistryAbi, functionName: "missions", args: [BigInt(nft.id)] });
+            const result = await window.ethereum!.request({
+              method: "eth_call",
+              params: [{ to: missionRegistryContract, data }, "latest"],
+            }) as `0x${string}`;
+            const decoded = decodeFunctionResult({ abi: missionRegistryAbi, functionName: "missions", data: result });
+            const [staker, startedAt, targetEndAt, endedAt, missionDuration, completed, active] = decoded;
+            return [nft.id, {
+              staker,
+              startedAt,
+              targetEndAt,
+              endedAt,
+              durationDays: Number(missionDuration),
+              completed,
+              active: active && staker.toLowerCase() === wallet.toLowerCase(),
+            }] as const;
+          } catch { return null; }
+        }));
+        for (const item of batch) if (item) next[item[0]] = item[1];
+      }
+      if (!cancelled) setMissionStates(next);
+    };
+    loadMissions();
+    return () => { cancelled = true; };
+  }, [wallet, ownedTokenKey, ownedNfts]);
+
   const toggleNft = (id: string) => {
-    if (mode !== "stake") return;
     setSelected((current) => current.includes(id) ? current.filter((tokenId) => tokenId !== id) : [...current, id]);
   };
 
-  const focusedNft = ownedNfts.find((nft) => nft.id === selected.at(-1)) ?? ownedNfts[0];
+  const availableNfts = ownedNfts.filter((nft) => !missionStates[nft.id]?.active);
+  const stakedNfts = ownedNfts.filter((nft) => missionStates[nft.id]?.active);
+  const displayedNfts = mode === "stake" ? availableNfts : stakedNfts;
+  const focusedNft = displayedNfts.find((nft) => nft.id === selected.at(-1)) ?? displayedNfts[0];
 
   const connect = async () => {
     if (!window.ethereum) {
@@ -325,20 +439,132 @@ function StakingTerminal({ market }: { market: MarketData }) {
     } finally { setConnecting(false); }
   };
 
-  return <section className="terminal-shell is-building" aria-label="Space Brokers staking terminal preview" aria-disabled="true">
-    <div className="terminal-topline"><span><i /> ORBITAL STAKING TERMINAL</span><b>STATUS // UNDER CONSTRUCTION</b></div>
-    <div className="construction-notice" role="status">
-      <span aria-hidden="true">⚠</span>
-      <div><strong>STAKING IS UNDER CONSTRUCTION</strong><p>This terminal is a preview only. Wallet connection, staking and claims are not live yet. Season 1 launch details will be announced on X and Discord.</p></div>
-      <b>COMING SOON</b>
+  const ensureRobinhoodChain = async () => {
+    if (!window.ethereum) throw new Error("No compatible wallet detected");
+    const currentChain = await window.ethereum.request({ method: "eth_chainId" }) as string;
+    if (currentChain === robinhoodChainId) return;
+    try {
+      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: robinhoodChainId }] });
+    } catch (error) {
+      const code = (error as { code?: number }).code;
+      if (code !== 4902) throw error;
+      await window.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: robinhoodChainId,
+          chainName: "Robinhood Chain",
+          nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+          rpcUrls: [robinhoodRpc],
+          blockExplorerUrls: ["https://robinhoodchain.blockscout.com"],
+        }],
+      });
+    }
+    setChain(robinhoodChainId);
+  };
+
+  const startMission = async () => {
+    if (!wallet || !window.ethereum || !stakingContractsLive || !selected.length) return;
+    setSubmitting(true);
+    setMessage("Preparing your on-chain Mothership mission…");
+    try {
+      await ensureRobinhoodChain();
+      const data = encodeFunctionData({
+        abi: missionRegistryAbi,
+        functionName: "startMissions",
+        args: [selected.map((id) => BigInt(id)), durationDays],
+      });
+      const txHash = await window.ethereum.request({
+        method: "eth_sendTransaction",
+        params: [{ from: wallet, to: missionRegistryContract, data }],
+      }) as string;
+      setMessage(`Mission submitted: ${txHash.slice(0, 10)}…${txHash.slice(-6)}. Your NFTs remain in your wallet.`);
+      setSelected([]);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The mission transaction was not completed.";
+      setMessage(detail.includes("rejected") ? "Mission cancelled in your wallet. Nothing was changed." : detail);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const finishMissions = async () => {
+    if (!wallet || !window.ethereum || !stakingContractsLive || !selected.length) return;
+    const now = BigInt(Math.floor(Date.now() / 1000));
+    const completedFlags = selected.map((id) => (missionStates[id]?.targetEndAt ?? BigInt(0)) <= now);
+    if (completedFlags.some(Boolean) && completedFlags.some((value) => !value)) {
+      setMessage("Select completed missions separately from missions you want to end early.");
+      return;
+    }
+    const completed = completedFlags.every(Boolean);
+    setSubmitting(true);
+    setMessage(completed ? "Preparing mission completion…" : "Preparing early mission exit…");
+    try {
+      await ensureRobinhoodChain();
+      const functionName = completed ? "completeMissions" : "exitMissions";
+      const data = encodeFunctionData({
+        abi: missionRegistryAbi,
+        functionName,
+        args: [selected.map((id) => BigInt(id))],
+      });
+      const txHash = await window.ethereum.request({
+        method: "eth_sendTransaction",
+        params: [{ from: wallet, to: missionRegistryContract, data }],
+      }) as string;
+      setMessage(completed
+        ? `Mission completion submitted: ${txHash.slice(0, 10)}…${txHash.slice(-6)}.`
+        : `Early mission exit submitted: ${txHash.slice(0, 10)}…${txHash.slice(-6)}. The unfinished bonus is forfeited.`);
+      setSelected([]);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The mission transaction was not completed.";
+      setMessage(detail.includes("rejected") ? "Mission action cancelled in your wallet. Nothing was changed." : detail);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const cumulativeReward = rewardClaim ? BigInt(rewardClaim.cumulativeAmount) : BigInt(0);
+  const claimableReward = cumulativeReward > alreadyClaimed ? cumulativeReward - alreadyClaimed : BigInt(0);
+  const claimableDisplay = Number(formatUnits(claimableReward, 18)).toLocaleString(undefined, { maximumFractionDigits: 4 });
+
+  const claimRewards = async () => {
+    if (!wallet || !window.ethereum || !rewardClaim || claimableReward === BigInt(0) || !stakingContractsLive) return;
+    setClaiming(true);
+    setMessage("Preparing your cumulative MOTHERSHIP claim…");
+    try {
+      await ensureRobinhoodChain();
+      const data = encodeFunctionData({
+        abi: rewardDistributorAbi,
+        functionName: "claim",
+        args: [cumulativeReward, rewardClaim.proof],
+      });
+      const txHash = await window.ethereum.request({
+        method: "eth_sendTransaction",
+        params: [{ from: wallet, to: rewardDistributorContract, data }],
+      }) as string;
+      setAlreadyClaimed(cumulativeReward);
+      setMessage(`Reward claim submitted: ${txHash.slice(0, 10)}…${txHash.slice(-6)}.`);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "The claim transaction was not completed.";
+      setMessage(detail.includes("rejected") ? "Claim cancelled in your wallet. Nothing was changed." : detail);
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  return <section className={`terminal-shell ${stakingContractsLive ? "is-live" : "is-building"}`} aria-label="Space Brokers staking terminal">
+    <div className="terminal-topline"><span><i /> ORBITAL STAKING TERMINAL</span><b>STATUS // {stakingContractsLive ? "MISSION READY" : "UNDER CONSTRUCTION"}</b></div>
+    <div className={`construction-notice ${stakingContractsLive ? "live-notice" : ""}`} role="status">
+      <span aria-hidden="true">{stakingContractsLive ? "✓" : "⚠"}</span>
+      <div><strong>{stakingContractsLive ? "SEASON 1 MISSION CONTROL" : "STAKING IS UNDER CONSTRUCTION"}</strong><p>{stakingContractsLive ? "Soft staking is active. Your Space Brokers remain in your wallet throughout every mission." : "The MOTHERSHIP token is live, but staking and claims remain disabled until the verified mission and reward contracts are published and funded."}</p></div>
+      <b>{stakingContractsLive ? "ONLINE" : "COMING SOON"}</b>
     </div>
     <div className="terminal-grid">
       <div className="dock-panel">
         <div className="panel-heading">
           <div><small>MODULE 01</small><h2>CREW DEPLOYMENT</h2></div>
           <div className="mode-switch" aria-label="Staking action">
-            <button className={mode === "stake" ? "active" : ""} disabled onClick={() => { setMode("stake"); setSelected([]); }}>STAKE</button>
-            <button className={mode === "unstake" ? "active" : ""} disabled onClick={() => { setMode("unstake"); setSelected([]); }}>UNSTAKE</button>
+            <button className={mode === "stake" ? "active" : ""} disabled={!stakingContractsLive} onClick={() => { setMode("stake"); setSelected([]); }}>STAKE</button>
+            <button className={mode === "unstake" ? "active" : ""} disabled={!stakingContractsLive} onClick={() => { setMode("unstake"); setSelected([]); }}>MISSIONS</button>
           </div>
         </div>
         <div className={`crew-scanner ${wallet ? "linked" : ""}`}>
@@ -358,33 +584,37 @@ function StakingTerminal({ market }: { market: MarketData }) {
         </div>
         {wallet && <div className="nft-bay">
           <div className="nft-bay-heading"><span><small>WALLET CREW</small><b>{mode === "stake" ? "AVAILABLE TO STAKE" : "STAKED CREW"}</b></span><em>{scanning ? "SCANNING…" : `${ownedNfts.length} DETECTED`}</em></div>
-          {mode === "unstake" ? <div className="nft-empty"><strong>STAKING CONTRACT NOT LINKED</strong><span>Staked crew will appear here once the staking contract is supplied.</span></div>
-            : ownedNfts.length ? <div className="nft-grid">{ownedNfts.map((nft) => <button key={nft.id} className={selected.includes(nft.id) ? "selected" : ""} onClick={() => toggleNft(nft.id)} aria-pressed={selected.includes(nft.id)}>
+          {displayedNfts.length ? <div className="nft-grid">{displayedNfts.map((nft) => <button key={nft.id} className={selected.includes(nft.id) ? "selected" : ""} onClick={() => toggleNft(nft.id)} aria-pressed={selected.includes(nft.id)}>
               <span className="nft-image">{nft.image ? <NftArtwork nft={nft} /> : <span className="nft-no-image">METADATA<br />UNAVAILABLE</span>}</span><span className="nft-name"><b>{nft.name}</b><small>TOKEN #{nft.id}</small></span><i>{selected.includes(nft.id) ? "✓" : "+"}</i>
             </button>)}</div>
             : scanning ? <div className="nft-loading"><i /><span>READING COLLECTION CONTRACT</span></div>
-            : <div className="nft-empty"><strong>NO CREW DETECTED</strong><span>This wallet does not currently hold NFTs from the linked Space Brokers contract.</span></div>}
+            : <div className="nft-empty"><strong>{mode === "stake" ? "NO AVAILABLE CREW" : "NO ACTIVE MISSIONS"}</strong><span>{mode === "stake" ? "This wallet has no unstaked Space Brokers available." : "This wallet has no active Space Brokers missions."}</span></div>}
+        </div>}
+        {mode === "stake" && <div className="mission-selector" aria-label="Mission duration">
+          {([30, 60, 90] as const).map((days) => <button key={days} className={durationDays === days ? "active" : ""} onClick={() => setDurationDays(days)} disabled={!stakingContractsLive}>
+            <small>{days} DAYS</small><strong>+{days === 30 ? 10 : days === 60 ? 25 : 50}%</strong><span>COMPLETION BONUS</span>
+          </button>)}
         </div>}
         <div className="selection-bar">
           <span><small>SELECTED CREW</small><strong>{selected.length}</strong></span>
-          <span><small>ACTION</small><strong>{mode.toUpperCase()}</strong></span>
-          <span><small>EST. RATE</small><strong>PENDING</strong></span>
+          <span><small>MISSION</small><strong>{durationDays} DAYS</strong></span>
+          <span><small>REWARD LOGIC</small><strong>RARITY × FLEET</strong></span>
         </div>
         {!wallet
-          ? <button className="primary-action calibrated" onClick={connect} disabled>{connecting ? "ESTABLISHING LINK…" : "STAKING UNDER CONSTRUCTION"}<span>⌁</span></button>
-          : <button className="primary-action calibrated" disabled>{selected.length ? `${selected.length} SELECTED — STAKING CONTRACT REQUIRED` : "SELECT CREW TO PREPARE STAKING"}<span>⌁</span></button>}
-        <p className="action-note">No transaction can be submitted until the verified staking contract, reward rate and eligible network are published.</p>
+          ? <button className={`primary-action ${stakingContractsLive ? "" : "calibrated"}`} onClick={connect} disabled={!stakingContractsLive || connecting}>{connecting ? "ESTABLISHING LINK…" : stakingContractsLive ? "CONNECT WALLET" : "STAKING UNDER CONSTRUCTION"}<span>⌁</span></button>
+          : <button className={`primary-action ${stakingContractsLive ? "" : "calibrated"}`} onClick={mode === "stake" ? startMission : finishMissions} disabled={!stakingContractsLive || !selected.length || submitting}>{submitting ? "PROCESSING MISSION…" : mode === "stake" ? selected.length ? `DEPLOY ${selected.length} BROKER${selected.length === 1 ? "" : "S"} // ${durationDays} DAYS` : "SELECT CREW TO BEGIN" : selected.length ? `PROCESS ${selected.length} MISSION${selected.length === 1 ? "" : "S"}` : "SELECT ACTIVE MISSIONS"}<span>⌁</span></button>}
+        <p className="action-note">No MOTHERSHIP is burned to stake. Your NFTs remain in your wallet; selling or transferring one ends that NFT’s mission and forfeits its unfinished completion bonus.</p>
       </div>
       <aside className="rewards-panel">
         <div className="panel-heading compact"><div><small>MODULE 02</small><h2>REWARD CORE</h2></div><span className="pulse-label"><i /> IDLE</span></div>
-        <div className="token-orb" aria-label="Season 1 reward token display"><span className="orb-orbit"><i /></span><div><small>REWARD TOKEN</small><strong>TBA</strong><b>SEASON 1</b></div></div>
-        <div className="reward-balance"><small>CLAIMABLE REWARDS</small><strong>0.00 <span>TBA</span></strong><p>Rewards begin accruing after an eligible Space Broker is successfully deployed.</p></div>
+        <div className="token-orb" aria-label="Season 1 Mothership reward token"><span className="orb-orbit"><i /></span><div><small>REWARD TOKEN</small><strong>MSHIP</strong><b>SEASON 1</b></div></div>
+        <div className="reward-balance"><small>CLAIMABLE REWARDS</small><strong>{claimableDisplay} <span>MSHIP</span></strong><p>Weekly rewards accumulate here. Claim when the balance is worthwhile for you.</p></div>
         <dl className="reward-stats">
           <div><dt>ACTIVE CREW</dt><dd>0</dd></div><div><dt>BASE OUTPUT</dt><dd>PENDING</dd></div>
           <div><dt>MULTIPLIER</dt><dd>—</dd></div><div><dt>NEXT CLAIM</dt><dd>NOT ACTIVE</dd></div>
         </dl>
-        <button className="claim-button" disabled>CLAIM TO WALLET</button>
-        <p className="token-warning">The final Season 1 reward asset and allocation will be announced before staking opens.</p>
+        <button className="claim-button" onClick={claimRewards} disabled={!stakingContractsLive || !wallet || claimableReward === BigInt(0) || claiming}>{claiming ? "CLAIMING…" : "CLAIM TO WALLET"}</button>
+        <p className="token-warning">MOTHERSHIP CONTRACT<br /><a href={`https://robinhoodchain.blockscout.com/token/${mothershipContract}`} target="_blank" rel="noreferrer">{formatWallet(mothershipContract)} ↗</a><br />The fixed Season 1 allocation will be published before staking opens.</p>
       </aside>
     </div>
   </section>;
@@ -408,12 +638,15 @@ function AbductionGame() {
   const [message, setMessage] = useState("SURVIVE 60 SECONDS. AVOID THE DEFENCES.");
   const [gameOver, setGameOver] = useState(false);
   const [escaped, setEscaped] = useState(false);
+  const [damaged, setDamaged] = useState(false);
   const invulnerableUntil = useRef(0);
   const spawnTick = useRef(0);
 
   const damage = useCallback((reason: string) => {
     if (Date.now() < invulnerableUntil.current || gameOver || escaped) return;
     invulnerableUntil.current = Date.now() + 1100;
+    setDamaged(true);
+    window.setTimeout(() => setDamaged(false), 1100);
     setMessage(`${reason} — SHIELD LOST`);
     setDetection(20);
     setLives((value) => { const next = value - 1; if (next <= 0) setGameOver(true); return Math.max(0, next); });
@@ -467,15 +700,18 @@ function AbductionGame() {
   useEffect(() => {
     if (gameOver || escaped || seconds === 0) return;
     if (missiles.some((missile) => missile.age >= 19 && missile.age <= 22 && Math.abs(missile.x - ufoX) < 7)) damage("MISSILE IMPACT");
-    if (Math.abs(searchX - ufoX) < 7) setDetection((value) => Math.min(100, value + 3));
-    else setDetection((value) => Math.max(0, value - 2));
+    const frame = window.requestAnimationFrame(() => {
+      if (Math.abs(searchX - ufoX) < 7) setDetection((value) => Math.min(100, value + 3));
+      else setDetection((value) => Math.max(0, value - 2));
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [damage, escaped, gameOver, missiles, searchX, seconds, ufoX]);
 
   useEffect(() => { if (detection >= 100) damage("DETECTION MAXIMUM"); }, [damage, detection]);
 
   const resetGame = () => {
     setScore(0); setLives(3); setSeconds(60); setDetection(0); setBeam(false); setUfoX(50); setTargets(initialTargets);
-    setMissiles([]); setSearchX(8); setLiftingId(null); setMessage("SURVIVE 60 SECONDS. AVOID THE DEFENCES."); setGameOver(false); setEscaped(false); spawnTick.current = 0;
+    setMissiles([]); setSearchX(8); setLiftingId(null); setMessage("SURVIVE 60 SECONDS. AVOID THE DEFENCES."); setGameOver(false); setEscaped(false); setDamaged(false); spawnTick.current = 0;
   };
 
   useEffect(() => {
@@ -494,7 +730,7 @@ function AbductionGame() {
     <div className="game-hud"><span>SCORE {String(score).padStart(6, "0")}</span><span>LIVES {"◆".repeat(lives)}{"◇".repeat(3 - lives)}</span><span>{seconds > 0 ? `ESCAPE ${seconds}s` : "PORTAL OPEN"}</span></div>
     <div className="game-sky">
       <div className="pixel-star s1" /><div className="pixel-star s2" /><div className="pixel-star s3" />
-      <div className={`ufo ${Date.now() < invulnerableUntil.current ? "damaged" : ""}`} style={{ left: `${ufoX}%` }}><span /><i /></div>
+      <div className={`ufo ${damaged ? "damaged" : ""}`} style={{ left: `${ufoX}%` }}><span /><i /></div>
       <div className={`beam ${beam ? "active" : ""}`} style={{ left: `${ufoX}%` }} />
       <div className={`searchlight ${spotted ? "spotted" : ""}`} style={{ left: `${searchX}%` }}><i /></div>
       {spotted && <div className="turret-fire" style={{ left: `${searchX}%`, transform: `translateX(-50%) rotate(${(ufoX - searchX) * .55}deg)` }}><i /><i /><i /></div>}
@@ -658,8 +894,8 @@ export default function Home() {
     <section className="cockpit-hero staking-zone" id="staking">
       <div className="starfield" aria-hidden="true" />
       <header className="section-header staking-heading"><div><small>06 // MOTHERSHIP UTILITY</small><h2>DEPLOY YOUR <span>CREW.</span></h2></div><p>Rarity, active fleet size and mission duration will determine reward power when Season 1 opens.</p></header>
-      <p className="staking-intro"><strong>Staking is currently under construction.</strong> This terminal is a preview; wallet connection, staking and claims are not live yet.</p>
-      <StakingTerminal market={market} />
+      <p className="staking-intro"><strong>MOTHERSHIP will power Season 1.</strong> Soft staking uses rarity, active fleet size and mission completion—without transferring or burning tokens.</p>
+      <StakingTerminal />
     </section>
 
     <section className="final-call"><div><small>HOLDER TRANSMISSION</small><h2>LOOK UP.<br /><span>QUESTION EVERYTHING.</span></h2><p>The Mothership is more than staking. Join the alien conversation, open the files and help decide what we investigate next.</p></div><div className="final-actions"><a className="bright-link" href={links.discord} target="_blank" rel="noreferrer">JOIN MISSION CONTROL ↗</a><a href={links.opensea} target="_blank" rel="noreferrer">VIEW COLLECTION ↗</a></div></section>

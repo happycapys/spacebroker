@@ -15,3 +15,8 @@
   from = "/api/wallet-nfts"
   to = "/.netlify/functions/wallet-nfts"
   status = 200
+
+[[redirects]]
+  from = "/api/rarity-snapshot"
+  to = "/.netlify/functions/rarity-snapshot"
+  status = 200
